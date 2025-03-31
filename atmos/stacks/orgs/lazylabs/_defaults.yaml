@@ -1,0 +1,20 @@
+terraform:
+  backend_type: azurerm
+  backend:
+    azurerm:
+      resource_group_name: "atmos-rsg-core"
+      storage_account_name: "statomicore"
+      container_name: "corestate"
+
+  # Global provider configuration
+  providers:
+    azurerm:
+      version: "= 4.23.0"
+      features: {}
+
+  # Terraform version constraint
+  version_constraint: ">= 1.9.0"
+
+vars:
+  namespace: "myorg"
+  tenant: "core"

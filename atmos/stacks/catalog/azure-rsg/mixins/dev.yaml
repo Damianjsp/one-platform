@@ -1,0 +1,7 @@
+components:
+  terraform:
+    azure-resource-group:
+      vars:
+        stage: "dev"
+        tags:
+          Environment: "Development"

@@ -1,0 +1,14 @@
+import:
+  - orgs/lazylabs/_defaults
+  - catalog/azure-rsg/defaults
+  - catalog/azure-rsg/mixins/dev
+
+components:
+  terraform:
+    azure-resource-group:
+      vars:
+        environment: "eus"
+        stage: "dev"
+        name: "services"
+        location: "East US"
+        attributes: ["shared"]

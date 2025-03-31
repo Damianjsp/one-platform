@@ -1,0 +1,17 @@
+components:
+  terraform:
+    azure-resource-group:
+      metadata:
+        component: azure-rsg
+        description: "Azure Resource Group"
+      vars:
+        enabled: true
+        delimiter: "-"
+        prevent_resource_group_deletion: false
+        regex_replace_chars: "/[^a-zA-Z0-9-]/"
+        label_order:
+          - namespace
+          - environment
+          - stage
+          - name
+          - attributes
