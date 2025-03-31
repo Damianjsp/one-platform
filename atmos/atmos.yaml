@@ -2,12 +2,13 @@ base_path: "."
 
 components:
   terraform:
-    base_path: components/terraform
+    base_path: components/terraform/modules
     apply_auto_approve: false
     deploy_run_init: true
     deploy_run_plan: true
     init_run_reconfigure: true
     auto_generate_backend_file: true
+    auto_generate_provider_file: true
 
 stacks:
   base_path: stacks

@@ -3,6 +3,5 @@ components:
     azure-resource-group:
       vars:
         stage: "prod"
-        prevent_resource_group_deletion: true
         tags:
           Environment: "Production"

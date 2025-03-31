@@ -15,12 +15,6 @@ variable "location" {
   type        = string
 }
 
-variable "prevent_resource_group_deletion" {
-  description = "Whether to prevent deletion of this resource group"
-  type        = bool
-  default     = false
-}
-
 # Label module variables
 variable "namespace" {
   description = "ID element. Usually an abbreviation of your organization name, e.g. 'eg' or 'cp', to help ensure generated IDs are globally unique"

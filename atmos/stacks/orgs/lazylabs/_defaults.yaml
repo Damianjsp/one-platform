@@ -9,12 +9,7 @@ terraform:
   # Global provider configuration
   providers:
     azurerm:
-      version: "= 4.23.0"
       features: {}
-
-  # Terraform version constraint
-  version_constraint: ">= 1.9.0"
-
 vars:
-  namespace: "myorg"
+  namespace: "lazylabs"
   tenant: "core"

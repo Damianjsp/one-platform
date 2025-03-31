@@ -24,8 +24,4 @@ resource "azurerm_resource_group" "this" {
   name     = coalesce(var.resource_group_name, module.label.id)
   location = var.location
   tags     = module.label.tags
-
-  lifecycle {
-    prevent_destroy = var.prevent_resource_group_deletion
-  }
 }
