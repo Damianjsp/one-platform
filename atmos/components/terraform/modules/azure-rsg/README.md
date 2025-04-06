@@ -16,7 +16,7 @@ Basic usage:
 
 ```hcl
 module "resource_group" {
-  source = "path/to/components/terraform/azure-resource-group"
+  source = "path/to/components/terraform/module/azure-rsg"
 
   namespace   = "myorg"
   tenant      = "core"
