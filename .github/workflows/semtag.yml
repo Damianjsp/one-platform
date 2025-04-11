@@ -1,0 +1,73 @@
+name: Semantic Auto Tag on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+      - main
+
+permissions: {}
+
+jobs:
+  create-tag:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          # Get all tags sorted by version, ignoring v0.0.x tags
+          latest_tag=$(git tag -l 'v*' | grep -v '^v0' | sort -V | tail -n 1)
+          if [ -z "$latest_tag" ]; then
+            latest_tag="v1.0.0"  # Default to v1.0.0 if no valid tag found
+          fi
+          echo "LATEST_TAG=$latest_tag" >> $GITHUB_ENV
+          echo "Found latest tag: $latest_tag"
+
+      - name: Generate new tag
+        id: generate_tag
+        run: |
+          latest_version=${LATEST_TAG#v}
+          IFS='.' read -r major minor patch <<< "$latest_version"
+
+          # Check PR labels for version bump type
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'v-major') }}" == "true" ]]; then
+            echo "Bumping major version"
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'v-minor') }}" == "true" ]]; then
+            echo "Bumping minor version"
+            minor=$((minor + 1))
+            patch=0
+          else
+            echo "Bumping patch version"
+            patch=$((patch + 1))
+          fi
+
+          new_tag="v$major.$minor.$patch"
+          echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
+          echo "Generated new tag: $new_tag from $LATEST_TAG"
+
+      - name: Create tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${process.env.NEW_TAG}`,
+              sha: context.sha
+            });
+
+            console.log(`Created tag ${process.env.NEW_TAG}`);
