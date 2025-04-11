@@ -1,0 +1,17 @@
+# stacks/catalog/azure-vnet/defaults.yaml
+
+components:
+  terraform:
+    azure-vnet:
+      metadata:
+        component: azure-vnet
+      vars:
+        enabled: true
+        delimiter: "-"
+        regex_replace_chars: "/[^a-zA-Z0-9-]/"
+        label_order:
+          - namespace
+          - environment
+          - stage
+          - name
+          - attributes

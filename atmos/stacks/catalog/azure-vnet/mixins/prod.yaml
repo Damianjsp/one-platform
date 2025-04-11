@@ -1,0 +1,7 @@
+components:
+  terraform:
+    azure-vnet:
+      vars:
+        stage: "prod"
+        tags:
+          Environment: "Production"

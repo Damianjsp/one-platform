@@ -2,6 +2,8 @@ import:
   - orgs/lazylabs/_defaults
   - catalog/azure-rsg/defaults
   - catalog/azure-rsg/mixins/dev
+  - catalog/azure-vnet/defaults
+  - catalog/azure-vnet/mixins/dev
 
 components:
   terraform:
@@ -12,3 +14,12 @@ components:
         name: "services"
         location: "East US"
         attributes: ["shared"]
+    azure-vnet:
+      vars:
+        environment: "eus"
+        stage: "dev"
+        name: "network"
+        resource_group_name: "lazylabs-eus-dev-services-shared"
+        location: "East US"
+        address_space: ["10.0.0.0/16"]
+        dns_servers: ["168.63.129.16"]  # Azure DNS
