@@ -1,4 +1,11 @@
 {
+  "git.autofetchPeriod": 180,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "git.postCommitCommand": "sync",
+  "git.pruneOnFetch": true,
+  "git.fetchOnPull": true,
+  "git.rebaseWhenSync": true,
   "git.openRepositoryInParentFolders": "always",
   "git.autofetch": true,
   "git.showProgress": true,

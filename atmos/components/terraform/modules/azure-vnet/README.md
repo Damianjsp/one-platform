@@ -1,97 +1,367 @@
+# Azure Virtual Network Module
 
-# Azure Virtual Network Terraform Module
-
-This Terraform module provisions an Azure Virtual Network using the `null-label` module from Cloud Posse for consistent naming and tagging.
+This module creates an Azure Virtual Network with standardized naming conventions, consistent tagging, and flexible configuration options. It provides the network foundation for all other Azure resources in the One Platform architecture.
 
 ## Features
 
-- Creates an Azure Virtual Network with standardized naming convention
-- Applies consistent tags based on the null-label module
-- Conditional creation with the `enabled` flag
-- Compatible with Atmos stack management
+- **Standardized Naming**: Uses cloudposse/label for consistent resource naming
+- **Flexible Address Space**: Support for multiple address ranges and CIDR blocks
+- **DNS Configuration**: Custom DNS servers or Azure default DNS
+- **DDoS Protection**: Optional DDoS protection plan integration
+- **BGP Community**: Border Gateway Protocol community attributes
+- **Conditional Creation**: Enable/disable with `var.enabled` flag
+- **Network Foundation**: Serves as base for subnets and other network resources
 
 ## Usage
 
-```hcl
-module "vnet" {
-  source = "path/to/modules/azure-vnet"
+### Basic Virtual Network
+```yaml
+components:
+  terraform:
+    azure-vnet:
+      vars:
+        name: "network"
+        location: "East US"
+        resource_group_name: "eusdevserviceslazylabs"
+        address_space: ["10.0.0.0/16"]
+        dns_servers: ["168.63.129.16"]  # Azure default DNS
+```
 
-  namespace   = "myorg"
-  tenant      = "core"
-  environment = "eastus"
-  stage       = "dev"
-  name        = "network"
+### Multiple Address Spaces
+```yaml
+components:
+  terraform:
+    azure-vnet:
+      vars:
+        name: "network"
+        location: "East US"
+        resource_group_name: "eusdevserviceslazylabs"
+        address_space: 
+          - "10.0.0.0/16"    # Primary address space
+          - "10.1.0.0/16"    # Secondary address space
+        dns_servers: ["10.0.0.4", "10.0.0.5"]  # Custom DNS servers
+```
 
-  resource_group_name = "my-resource-group"
-  location            = "East US"
-  address_space       = ["10.0.0.0/16"]
-  dns_servers         = ["10.0.0.4", "10.0.0.5"]
+### Enterprise Network with DDoS Protection
+```yaml
+components:
+  terraform:
+    azure-vnet:
+      vars:
+        name: "enterprise"
+        location: "East US"
+        resource_group_name: "eusdevserviceslazylabs"
+        address_space: ["10.0.0.0/8"]
+        bgp_community: "65001:1001"
+        ddos_protection_plan:
+          id: "/subscriptions/{subscription-id}/resourceGroups/{rg}/providers/Microsoft.Network/ddosProtectionPlans/{plan-name}"
+          enable: true
+```
 
-  tags = {
-    BusinessUnit = "IT"
-    Owner        = "Network Team"
-  }
-}
+## Naming Convention
 
-<!-- BEGIN_TF_DOCS -->
+Virtual networks follow the pattern: `{environment}{stage}{name}{namespace}`
+
+### Examples
+| Environment | Stage | Name | Namespace | Result |
+|-------------|-------|------|-----------|--------|
+| eus | dev | network | lazylabs | eusdevnetworklazylabs |
+| wus | prod | enterprise | lazylabs | wusprodenterpriselazylabs |
+| eus | dev | spoke1 | lazylabs | eusdevspoke1lazylabs |
+
+## Multiple Instance Patterns
+
+### Hub-Spoke Network Architecture
+```yaml
+components:
+  terraform:
+    # Hub network
+    azure-vnet-hub:
+      metadata:
+        component: azure-vnet
+      vars:
+        name: "hub"
+        address_space: ["10.0.0.0/16"]
+        dns_servers: ["10.0.0.4", "10.0.0.5"]
+
+    # Spoke network 1 (Applications)
+    azure-vnet-spoke-app:
+      metadata:
+        component: azure-vnet
+      vars:
+        name: "spoke"
+        attributes: ["app"]
+        address_space: ["10.1.0.0/16"]
+        dns_servers: ["10.0.0.4", "10.0.0.5"]
+
+    # Spoke network 2 (Data)
+    azure-vnet-spoke-data:
+      metadata:
+        component: azure-vnet
+      vars:
+        name: "spoke"
+        attributes: ["data"]
+        address_space: ["10.2.0.0/16"]
+        dns_servers: ["10.0.0.4", "10.0.0.5"]
+```
+
+### Environment-Specific Networks
+```yaml
+components:
+  terraform:
+    # Development network
+    azure-vnet-dev:
+      metadata:
+        component: azure-vnet
+      vars:
+        name: "development"
+        address_space: ["10.10.0.0/16"]
+
+    # Production network
+    azure-vnet-prod:
+      metadata:
+        component: azure-vnet
+      vars:
+        name: "production"
+        address_space: ["10.20.0.0/16"]
+        ddos_protection_plan:
+          id: "/subscriptions/{id}/resourceGroups/{rg}/providers/Microsoft.Network/ddosProtectionPlans/{plan}"
+          enable: true
+```
+
+## Integration with Other Components
+
+Virtual networks are referenced by subnets and other network components:
+
+```yaml
+# Subnet references the VNet
+azure-subnet:
+  vars:
+    virtual_network_name: "${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}"
+
+# Private endpoint references VNet through subnet
+azure-private-endpoint:
+  vars:
+    subnet_id: "/subscriptions/{id}/resourceGroups/{rg}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/{subnet-name}"
+```
+
+## Address Space Planning
+
+### Common Address Space Patterns
+```yaml
+# Development environments (smaller ranges)
+address_space: ["10.10.0.0/16"]  # 65,534 addresses
+
+# Production environments (larger ranges)
+address_space: ["10.0.0.0/8"]    # 16,777,214 addresses
+
+# Multi-region with reserved ranges
+# East US: 10.1.0.0/16
+# West US: 10.2.0.0/16
+# Central US: 10.3.0.0/16
+```
+
+### Subnet Planning Within VNet
+```yaml
+# VNet: 10.0.0.0/16 (65,534 addresses)
+# Subnet planning:
+# - Web tier: 10.0.1.0/24 (254 addresses)
+# - App tier: 10.0.2.0/24 (254 addresses)  
+# - Data tier: 10.0.3.0/24 (254 addresses)
+# - Management: 10.0.4.0/24 (254 addresses)
+```
+
+## DNS Configuration
+
+### Azure Default DNS
+```yaml
+dns_servers: ["168.63.129.16"]  # Azure-provided DNS
+```
+
+### Custom DNS Servers
+```yaml
+dns_servers: 
+  - "10.0.0.4"    # Primary DNS server
+  - "10.0.0.5"    # Secondary DNS server
+```
+
+### Hybrid DNS (On-premises + Azure)
+```yaml
+dns_servers:
+  - "192.168.1.10"   # On-premises DNS
+  - "168.63.129.16"  # Azure DNS fallback
+```
+
+## Security Best Practices
+
+### Network Segmentation
+- Use separate VNets for different environments
+- Implement network security groups (NSGs) on subnets
+- Consider Azure Firewall for centralized security
+
+### DDoS Protection
+```yaml
+ddos_protection_plan:
+  id: "/subscriptions/{subscription-id}/resourceGroups/{rg}/providers/Microsoft.Network/ddosProtectionPlans/{plan-name}"
+  enable: true
+```
+
+### Network Monitoring
+- Enable Network Watcher in each region
+- Configure flow logs for security analysis
+- Set up connection monitoring
+
 ## Requirements
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9.0 |
-| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | = 4.23.0 |
+| terraform | >= 1.9.0 |
+| azurerm | = 4.23.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | = 4.23.0 |
-
-## Modules
-
-| Name | Source | Version |
-|------|--------|---------|
-| <a name="module_label"></a> [label](#module\_label) | cloudposse/label/null | 0.25.0 |
-
-## Resources
-
-| Name | Type |
-|------|------|
-| [azurerm_virtual_network.this](https://registry.terraform.io/providers/hashicorp/azurerm/4.23.0/docs/resources/virtual_network) | resource |
+| azurerm | = 4.23.0 |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_address_space"></a> [address\_space](#input\_address\_space) | The address space that is used the virtual network | `list(string)` | n/a | yes |
-| <a name="input_attributes"></a> [attributes](#input\_attributes) | ID element. Additional attributes (e.g. `workers` or `cluster`) to add to `id` in the order they appear in the list | `list(string)` | `[]` | no |
-| <a name="input_bgp_community"></a> [bgp\_community](#input\_bgp\_community) | The BGP community attribute in format `<as-number>:<community-value>` | `string` | `null` | no |
-| <a name="input_ddos_protection_plan"></a> [ddos\_protection\_plan](#input\_ddos\_protection\_plan) | A ddos\_protection\_plan block | <pre>object({<br/>    id     = string<br/>    enable = bool<br/>  })</pre> | `null` | no |
-| <a name="input_delimiter"></a> [delimiter](#input\_delimiter) | Delimiter to be used between ID elements | `string` | `"-"` | no |
-| <a name="input_dns_servers"></a> [dns\_servers](#input\_dns\_servers) | List of IP addresses of DNS servers | `list(string)` | `null` | no |
-| <a name="input_enabled"></a> [enabled](#input\_enabled) | Set to false to prevent the module from creating any resources | `bool` | `true` | no |
-| <a name="input_environment"></a> [environment](#input\_environment) | ID element. Usually used for region e.g. 'uw2', 'us-west-2', OR role 'prod', 'staging', 'dev', 'UAT' | `string` | `null` | no |
-| <a name="input_id_length_limit"></a> [id\_length\_limit](#input\_id\_length\_limit) | Limit `id` to this many characters (minimum 6) | `number` | `null` | no |
-| <a name="input_label_key_case"></a> [label\_key\_case](#input\_label\_key\_case) | Controls the letter case of the tags keys (label names) for tags generated by this module | `string` | `null` | no |
-| <a name="input_label_order"></a> [label\_order](#input\_label\_order) | The order in which the labels (ID elements) appear in the id | `list(string)` | `null` | no |
-| <a name="input_label_value_case"></a> [label\_value\_case](#input\_label\_value\_case) | Controls the letter case of the tags values for tags generated by this module | `string` | `null` | no |
-| <a name="input_location"></a> [location](#input\_location) | The location/region where the virtual network is created | `string` | n/a | yes |
-| <a name="input_name"></a> [name](#input\_name) | ID element. Usually the component or solution name, e.g. 'app' or 'jenkins' | `string` | `null` | no |
-| <a name="input_namespace"></a> [namespace](#input\_namespace) | ID element. Usually an abbreviation of your organization name, e.g. 'eg' or 'cp', to help ensure generated IDs are globally unique | `string` | `null` | no |
-| <a name="input_regex_replace_chars"></a> [regex\_replace\_chars](#input\_regex\_replace\_chars) | Terraform regular expression (regex) string. Characters matching the regex will be removed from the ID elements | `string` | `null` | no |
-| <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | The name of the resource group in which to create the virtual network | `string` | n/a | yes |
-| <a name="input_stage"></a> [stage](#input\_stage) | ID element. Usually used to indicate role, e.g. 'prod', 'staging', 'source', 'build', 'test', 'deploy', 'release' | `string` | `null` | no |
-| <a name="input_tags"></a> [tags](#input\_tags) | Additional tags (e.g. `{'BusinessUnit': 'XYZ'}`) | `map(string)` | `{}` | no |
-| <a name="input_tenant"></a> [tenant](#input\_tenant) | ID element \_(Rarely used, not included by default)\_. A customer identifier, indicating who this instance of a resource is for | `string` | `null` | no |
-| <a name="input_vnet_name"></a> [vnet\_name](#input\_vnet\_name) | Custom name for the virtual network. If not specified, the module will use the ID from the label module | `string` | `null` | no |
+| enabled | Set to false to prevent the module from creating any resources | `bool` | `true` | no |
+| location | The location/region where the virtual network is created | `string` | n/a | yes |
+| resource_group_name | The name of the resource group | `string` | n/a | yes |
+| address_space | The address space that is used for the virtual network | `list(string)` | n/a | yes |
+| vnet_name | Custom name for the virtual network. If not specified, uses label module ID | `string` | `null` | no |
+| dns_servers | List of IP addresses of DNS servers | `list(string)` | `null` | no |
+| bgp_community | The BGP community attribute in format `<as-number>:<community-value>` | `string` | `null` | no |
+| ddos_protection_plan | A ddos_protection_plan block | `object({id = string, enable = bool})` | `null` | no |
+| namespace | ID element. Usually an abbreviation of your organization name | `string` | `null` | no |
+| environment | ID element. Usually used for region (e.g. 'eus', 'wus') | `string` | `null` | no |
+| stage | ID element. Usually used to indicate role (e.g. 'prod', 'dev') | `string` | `null` | no |
+| name | ID element. Usually the component or solution name | `string` | `null` | no |
+| attributes | ID element. Additional attributes to add to ID | `list(string)` | `[]` | no |
+| tags | Additional tags | `map(string)` | `{}` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_context"></a> [context](#output\_context) | Exported context for use by other modules |
-| <a name="output_tags"></a> [tags](#output\_tags) | The tags applied to the virtual network |
-| <a name="output_vnet_address_space"></a> [vnet\_address\_space](#output\_vnet\_address\_space) | The address space of the virtual network |
-| <a name="output_vnet_id"></a> [vnet\_id](#output\_vnet\_id) | The ID of the virtual network |
-| <a name="output_vnet_name"></a> [vnet\_name](#output\_vnet\_name) | The name of the virtual network |
-<!-- END_TF_DOCS -->
+| vnet_id | The ID of the virtual network |
+| vnet_name | The name of the virtual network |
+| vnet_address_space | The address space of the virtual network |
+| tags | The tags applied to the virtual network |
+| context | Exported context for use by other modules |
+
+## Examples
+
+### Complete Network Stack
+```yaml
+components:
+  terraform:
+    # Resource group for network resources
+    azure-resource-group-network:
+      metadata:
+        component: azure-resource-group
+      vars:
+        name: "network"
+        location: "East US"
+
+    # Virtual network
+    azure-vnet:
+      vars:
+        name: "network"
+        location: "East US"
+        resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group-network.vars.name}${var.namespace}"
+        address_space: ["10.0.0.0/16"]
+        dns_servers: ["168.63.129.16"]
+
+    # Subnets within the VNet
+    azure-subnet-web:
+      metadata:
+        component: azure-subnet
+      vars:
+        name: "web"
+        resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group-network.vars.name}${var.namespace}"
+        virtual_network_name: "${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}"
+        address_prefixes: ["10.0.1.0/24"]
+```
+
+### Multi-Region Network
+```yaml
+components:
+  terraform:
+    # East US network
+    azure-vnet-east:
+      metadata:
+        component: azure-vnet
+      vars:
+        name: "network"
+        attributes: ["east"]
+        location: "East US"
+        address_space: ["10.1.0.0/16"]
+
+    # West US network
+    azure-vnet-west:
+      metadata:
+        component: azure-vnet
+      vars:
+        name: "network"
+        attributes: ["west"]
+        location: "West US"
+        address_space: ["10.2.0.0/16"]
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Address Space Conflicts**
+   - Ensure address spaces don't overlap between VNets
+   - Check for conflicts with on-premises networks
+   - Use Azure IP address planning tools
+
+2. **DNS Resolution Issues**
+   - Verify DNS server accessibility
+   - Check NSG rules for DNS traffic (port 53)
+   - Validate DNS server configuration
+
+3. **Connectivity Problems**
+   - Verify route tables and user-defined routes
+   - Check network security group rules
+   - Validate network peering configuration
+
+### Validation
+```bash
+# Validate the VNet component
+./scripts/validate-component.sh azure-vnet core-eus-dev
+
+# Check VNet in Azure
+az network vnet show --name eusdevnetworklazylabs --resource-group eusdevserviceslazylabs
+```
+
+## Best Practices
+
+### Address Space Design
+- Plan address spaces before deployment
+- Reserve address ranges for future growth
+- Avoid overlapping with on-premises networks
+- Use standard private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+
+### Network Architecture
+- Implement hub-spoke topology for enterprise scenarios
+- Use separate VNets for different environments
+- Consider network peering for VNet-to-VNet connectivity
+- Plan for hybrid connectivity with ExpressRoute or VPN
+
+### Security
+- Enable DDoS protection for production environments
+- Implement network segmentation with subnets
+- Use Azure Firewall or network virtual appliances
+- Monitor network traffic with Network Watcher
+
+### Performance
+- Choose regions close to users
+- Consider availability zones for high availability
+- Plan bandwidth requirements
+- Monitor network performance metrics

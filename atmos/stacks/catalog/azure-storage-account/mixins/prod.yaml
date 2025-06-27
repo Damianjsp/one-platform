@@ -1,0 +1,73 @@
+# stacks/catalog/azure-storage-account/mixins/prod.yaml
+
+components:
+  terraform:
+    azure-storage-account:
+      vars:
+        # Production environment settings
+        account_replication_type: "GRS"
+        access_tier: "Hot"
+        public_network_access_enabled: false
+        
+        # Enable all storage services for production
+        enabled_services:
+          - "blob"
+          - "file"
+          - "queue"
+          - "table"
+        
+        # Production blob properties with longer retention
+        blob_properties:
+          versioning_enabled: true
+          change_feed_enabled: true
+          change_feed_retention_in_days: 365
+          last_access_time_enabled: true
+          delete_retention_policy:
+            days: 30
+          container_delete_retention_policy:
+            days: 30
+        
+        # Queue properties for production
+        queue_properties:
+          logging:
+            delete: true
+            read: true
+            write: true
+            version: "1.0"
+            retention_policy_days: 10
+          minute_metrics:
+            enabled: true
+            version: "1.0"
+            include_apis: true
+            retention_policy_days: 7
+          hour_metrics:
+            enabled: true
+            version: "1.0"
+            include_apis: true
+            retention_policy_days: 7
+        
+        # File share properties for production
+        share_properties:
+          retention_policy:
+            days: 30
+          smb:
+            versions: ["SMB2.1", "SMB3.0", "SMB3.1.1"]
+            authentication_types: ["NTLMv2", "Kerberos"]
+            kerberos_ticket_encryption_type: ["RC4-HMAC", "AES-256"]
+            channel_encryption_type: ["AES-128-CCM", "AES-128-GCM", "AES-256-GCM"]
+        
+        # Private endpoints for all services in production
+        create_private_endpoints: true
+        private_endpoint_services:
+          - "blob"
+          - "file"
+          - "queue"
+          - "table"
+        
+        # Strict network rules for production
+        network_rules:
+          default_action: "Deny"
+          bypass:
+            - "AzureServices"
+          ip_rules: []
+          virtual_network_subnet_ids: []

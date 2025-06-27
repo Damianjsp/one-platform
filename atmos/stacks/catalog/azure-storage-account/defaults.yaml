@@ -1,0 +1,42 @@
+# stacks/catalog/azure-storage-account/defaults.yaml
+
+components:
+  terraform:
+    azure-storage-account:
+      metadata:
+        component: azure-storage-account
+      vars:
+        enabled: true
+        delimiter: ""
+        regex_replace_chars: "/[^a-zA-Z0-9]/"
+        label_order:
+          - environment
+          - stage
+          - name
+          - namespace
+        
+        # Default Storage Account Configuration
+        account_tier: "Standard"
+        account_replication_type: "LRS"
+        account_kind: "StorageV2"
+        access_tier: "Hot"
+        https_traffic_only_enabled: true
+        min_tls_version: "TLS1_2"
+        allow_nested_items_to_be_public: false
+        shared_access_key_enabled: true
+        public_network_access_enabled: false
+        default_to_oauth_authentication: true
+        use_random_suffix: true
+        
+        # Data Lake Gen2 disabled by default
+        is_hns_enabled: false
+        
+        # Default enabled services
+        enabled_services:
+          - "blob"
+        
+        # Private endpoints disabled by default
+        create_private_endpoints: false
+        private_endpoint_services:
+          - "blob"
+        private_endpoint_manual_connection: false

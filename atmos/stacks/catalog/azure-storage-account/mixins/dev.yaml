@@ -1,0 +1,39 @@
+# stacks/catalog/azure-storage-account/mixins/dev.yaml
+
+components:
+  terraform:
+    azure-storage-account:
+      vars:
+        # Development environment settings
+        account_replication_type: "LRS"
+        access_tier: "Hot"
+        public_network_access_enabled: false
+        
+        # Enable basic blob service with versioning
+        enabled_services:
+          - "blob"
+          - "file"
+        
+        # Development blob properties
+        blob_properties:
+          versioning_enabled: true
+          change_feed_enabled: false
+          last_access_time_enabled: false
+          delete_retention_policy:
+            days: 7
+          container_delete_retention_policy:
+            days: 7
+        
+        # Private endpoints enabled for development with basic services
+        create_private_endpoints: true
+        private_endpoint_services:
+          - "blob"
+          - "file"
+        
+        # Network rules for development (restrictive)
+        network_rules:
+          default_action: "Deny"
+          bypass:
+            - "AzureServices"
+          ip_rules: []
+          virtual_network_subnet_ids: []
