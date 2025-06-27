@@ -39,19 +39,87 @@ components:
         # Enable private endpoint network policies
         private_endpoint_network_policies: "Enabled"
 
-    # Example private endpoint for storage account (commented out - requires actual storage account)
-    # azure-private-endpoint-storage:
+    # Multiple Private Endpoint Examples - Different Services with Different Configurations
+    
+    # Example 1: Storage Account Private Endpoint for Blob Service
+    # azure-private-endpoint-storage-blob:
     #   metadata:
     #     component: azure-private-endpoint
     #   vars:
-    #     name: "storage"
+    #     name: "stgblob"
+    #     attributes: ["blob"]
     #     location: "${var.location}"
-    #     # Reference the resource group and subnet components
     #     resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
     #     subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
-    #     # This would reference an actual storage account resource ID
-    #     private_connection_resource_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Storage/storageAccounts/{storage-account-name}"
+    #     private_connection_resource_id: "/subscriptions/{subscription-id}/resourceGroups/{rg}/providers/Microsoft.Storage/storageAccounts/{storage-account-name}"
     #     subresource_names: ["blob"]
     #     private_dns_zone_group:
-    #       name: "storage-dns-zone-group"
+    #       name: "storage-blob-dns-zone-group"
     #       private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net"]
+
+    # Example 2: Storage Account Private Endpoint for File Service (same storage, different subresource)
+    # azure-private-endpoint-storage-file:
+    #   metadata:
+    #     component: azure-private-endpoint
+    #   vars:
+    #     name: "stgfile"
+    #     attributes: ["file"]
+    #     location: "${var.location}"
+    #     resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+    #     subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
+    #     private_connection_resource_id: "/subscriptions/{subscription-id}/resourceGroups/{rg}/providers/Microsoft.Storage/storageAccounts/{storage-account-name}"
+    #     subresource_names: ["file"]
+    #     private_dns_zone_group:
+    #       name: "storage-file-dns-zone-group"
+    #       private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.file.core.windows.net"]
+
+    # Example 3: Key Vault Private Endpoint
+    # azure-private-endpoint-keyvault:
+    #   metadata:
+    #     component: azure-private-endpoint
+    #   vars:
+    #     name: "keyvault"
+    #     location: "${var.location}"
+    #     resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+    #     subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
+    #     private_connection_resource_id: "/subscriptions/{subscription-id}/resourceGroups/{rg}/providers/Microsoft.KeyVault/vaults/{keyvault-name}"
+    #     subresource_names: ["vault"]
+    #     private_dns_zone_group:
+    #       name: "keyvault-dns-zone-group"
+    #       private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.vaultcore.azure.net"]
+
+    # Example 4: SQL Database Private Endpoint with Manual Approval
+    # azure-private-endpoint-sql:
+    #   metadata:
+    #     component: azure-private-endpoint
+    #   vars:
+    #     name: "sqldb"
+    #     location: "${var.location}"
+    #     resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+    #     subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
+    #     private_connection_resource_id: "/subscriptions/{subscription-id}/resourceGroups/{rg}/providers/Microsoft.Sql/servers/{sql-server-name}"
+    #     subresource_names: ["sqlServer"]
+    #     is_manual_connection: true
+    #     request_message: "Please approve private endpoint connection for development environment"
+    #     private_dns_zone_group:
+    #       name: "sql-dns-zone-group"
+    #       private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.database.windows.net"]
+
+    # Example 5: Cosmos DB Private Endpoint with Custom IP Configuration
+    # azure-private-endpoint-cosmos:
+    #   metadata:
+    #     component: azure-private-endpoint
+    #   vars:
+    #     name: "cosmos"
+    #     location: "${var.location}"
+    #     resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+    #     subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
+    #     private_connection_resource_id: "/subscriptions/{subscription-id}/resourceGroups/{rg}/providers/Microsoft.DocumentDB/databaseAccounts/{cosmos-account-name}"
+    #     subresource_names: ["sql"]
+    #     ip_configurations:
+    #       - name: "cosmos-ip-config"
+    #         private_ip_address: "10.0.1.100"
+    #         subresource_name: "sql"
+    #     private_dns_zone_group:
+    #       name: "cosmos-dns-zone-group"
+    #       private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.documents.azure.com"]
