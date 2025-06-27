@@ -1,0 +1,10 @@
+# stacks/catalog/azure-private-endpoint/mixins/dev.yaml
+
+components:
+  terraform:
+    azure-private-endpoint:
+      vars:
+        is_manual_connection: false
+        ip_configurations: []
+        # Common subresource names for development
+        # These will be overridden per component instance

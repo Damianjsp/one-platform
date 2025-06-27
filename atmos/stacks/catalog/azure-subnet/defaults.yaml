@@ -1,10 +1,10 @@
-# stacks/catalog/azure-vnet/defaults.yaml
+# stacks/catalog/azure-subnet/defaults.yaml
 
 components:
   terraform:
-    azure-vnet:
+    azure-subnet:
       metadata:
-        component: azure-vnet
+        component: azure-subnet
       vars:
         enabled: true
         delimiter: ""

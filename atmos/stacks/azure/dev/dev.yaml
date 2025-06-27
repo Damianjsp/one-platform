@@ -4,22 +4,54 @@ import:
   - catalog/azure-rsg/mixins/dev
   - catalog/azure-vnet/defaults
   - catalog/azure-vnet/mixins/dev
+  - catalog/azure-subnet/defaults
+  - catalog/azure-subnet/mixins/dev
+  - catalog/azure-private-endpoint/defaults
+  - catalog/azure-private-endpoint/mixins/dev
+
+vars:
+  environment: "eus"
+  stage: "dev"
+  location: "East US"
 
 components:
   terraform:
     azure-resource-group:
       vars:
-        environment: "eus"
-        stage: "dev"
         name: "services"
-        location: "East US"
         attributes: ["shared"]
+
     azure-vnet:
       vars:
-        environment: "eus"
-        stage: "dev"
         name: "network"
-        resource_group_name: "lazylabs-eus-dev-services-shared"
-        location: "East US"
         address_space: ["10.0.0.0/16"]
-        dns_servers: ["168.63.129.16"]  # Azure DNS
+        dns_servers: ["168.63.129.16"]
+        # Reference the resource group component's variables
+        resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+
+    azure-subnet:
+      vars:
+        name: "web"
+        address_prefixes: ["10.0.1.0/24"]
+        # Reference the resource group and vnet components
+        resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+        virtual_network_name: "${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}"
+        # Enable private endpoint network policies
+        private_endpoint_network_policies: "Enabled"
+
+    # Example private endpoint for storage account (commented out - requires actual storage account)
+    # azure-private-endpoint-storage:
+    #   metadata:
+    #     component: azure-private-endpoint
+    #   vars:
+    #     name: "storage"
+    #     location: "${var.location}"
+    #     # Reference the resource group and subnet components
+    #     resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+    #     subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
+    #     # This would reference an actual storage account resource ID
+    #     private_connection_resource_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Storage/storageAccounts/{storage-account-name}"
+    #     subresource_names: ["blob"]
+    #     private_dns_zone_group:
+    #       name: "storage-dns-zone-group"
+    #       private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net"]

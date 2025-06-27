@@ -1,0 +1,8 @@
+# stacks/catalog/azure-subnet/mixins/dev.yaml
+
+components:
+  terraform:
+    azure-subnet:
+      vars:
+        private_endpoint_network_policies: "Enabled"
+        service_endpoints: []

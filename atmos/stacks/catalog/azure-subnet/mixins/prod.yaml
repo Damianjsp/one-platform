@@ -1,0 +1,10 @@
+# stacks/catalog/azure-subnet/mixins/prod.yaml
+
+components:
+  terraform:
+    azure-subnet:
+      vars:
+        private_endpoint_network_policies: "Enabled"
+        service_endpoints:
+          - "Microsoft.Storage"
+          - "Microsoft.KeyVault"
