@@ -8,6 +8,8 @@ import:
   - catalog/azure-subnet/mixins/dev
   - catalog/azure-private-endpoint/defaults
   - catalog/azure-private-endpoint/mixins/dev
+  - catalog/azure-storage-account/defaults
+  - catalog/azure-storage-account/mixins/dev
 
 vars:
   environment: "eus"
@@ -123,3 +125,150 @@ components:
     #     private_dns_zone_group:
     #       name: "cosmos-dns-zone-group"
     #       private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.documents.azure.com"]
+
+    # =============================================================================
+    # AZURE STORAGE ACCOUNT EXAMPLES
+    # =============================================================================
+
+    # Example 1: Standard V2 Storage Account with Blob and File Services
+    azure-storage-account-general:
+      vars:
+        name: "general"
+        location: "${var.location}"
+        resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+        
+        # Standard V2 configuration
+        account_kind: "StorageV2"
+        account_tier: "Standard"
+        account_replication_type: "LRS"
+        access_tier: "Hot"
+        
+        # Enable blob and file services
+        enabled_services:
+          - "blob"
+          - "file"
+        
+        # Enable private endpoints for secure access
+        create_private_endpoints: true
+        private_endpoint_services:
+          - "blob"
+          - "file"
+        private_endpoint_subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
+        
+        # DNS zone groups for private endpoints
+        private_endpoint_dns_zone_group_blob:
+          name: "storage-blob-dns-zone-group"
+          private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net"]
+        
+        private_endpoint_dns_zone_group_file:
+          name: "storage-file-dns-zone-group"
+          private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.file.core.windows.net"]
+
+    # Example 2: Data Lake Gen2 Storage Account
+    # azure-storage-account-datalake:
+    #   vars:
+    #     name: "datalake"
+    #     attributes: ["adls"]
+    #     location: "${var.location}"
+    #     resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+    #     
+    #     # Data Lake Gen2 configuration
+    #     account_kind: "StorageV2"
+    #     account_tier: "Standard"
+    #     account_replication_type: "GRS"
+    #     is_hns_enabled: true  # Enable hierarchical namespace for Data Lake Gen2
+    #     
+    #     # Enable blob and dfs services for Data Lake
+    #     enabled_services:
+    #       - "blob"
+    #     
+    #     # Private endpoints for Data Lake services
+    #     create_private_endpoints: true
+    #     private_endpoint_services:
+    #       - "blob"
+    #       - "dfs"  # Data Lake File System endpoint
+    #     private_endpoint_subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
+    #     
+    #     # DNS zone groups for Data Lake endpoints
+    #     private_endpoint_dns_zone_group_blob:
+    #       name: "datalake-blob-dns-zone-group"
+    #       private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net"]
+    #     
+    #     private_endpoint_dns_zone_group_dfs:
+    #       name: "datalake-dfs-dns-zone-group"
+    #       private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.dfs.core.windows.net"]
+
+    # Example 3: Premium Block Blob Storage (High Performance)
+    # azure-storage-account-premium:
+    #   vars:
+    #     name: "premium"
+    #     attributes: ["highperf"]
+    #     location: "${var.location}"
+    #     resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+    #     
+    #     # Premium Block Blob Storage configuration
+    #     account_kind: "BlockBlobStorage"
+    #     account_tier: "Premium"
+    #     account_replication_type: "LRS"
+    #     
+    #     # Only blob service for BlockBlobStorage
+    #     enabled_services:
+    #       - "blob"
+    #     
+    #     # Enhanced blob properties for premium storage
+    #     blob_properties:
+    #       versioning_enabled: true
+    #       change_feed_enabled: true
+    #       change_feed_retention_in_days: 30
+    #       last_access_time_enabled: true
+    #     
+    #     # Private endpoint for premium blob storage
+    #     create_private_endpoints: true
+    #     private_endpoint_services:
+    #       - "blob"
+    #     private_endpoint_subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
+
+    # Example 4: Multi-Service Storage Account with All Services
+    # azure-storage-account-multiservice:
+    #   vars:
+    #     name: "multiservice"
+    #     location: "${var.location}"
+    #     resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+    #     
+    #     # Standard V2 with all services
+    #     account_kind: "StorageV2"
+    #     account_tier: "Standard"
+    #     account_replication_type: "GRS"
+    #     
+    #     # Enable all storage services
+    #     enabled_services:
+    #       - "blob"
+    #       - "file"
+    #       - "queue"
+    #       - "table"
+    #     
+    #     # Queue service configuration
+    #     queue_properties:
+    #       logging:
+    #         delete: true
+    #         read: true
+    #         write: true
+    #         version: "1.0"
+    #         retention_policy_days: 7
+    #     
+    #     # File share configuration
+    #     share_properties:
+    #       retention_policy:
+    #         days: 14
+    #       smb:
+    #         versions: ["SMB3.0", "SMB3.1.1"]
+    #         authentication_types: ["NTLMv2", "Kerberos"]
+    #     
+    #     # Private endpoints for all services
+    #     create_private_endpoints: true
+    #     private_endpoint_services:
+    #       - "blob"
+    #       - "file"
+    #       - "queue"
+    #       - "table"
+    #     private_endpoint_subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"

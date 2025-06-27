@@ -32,6 +32,7 @@ This repository provides a centralized platform for managing infrastructure depl
 | `azure-vnet` | Azure Virtual Networks | Resource Groups |
 | `azure-subnet` | Azure Subnets | Resource Groups, VNets |
 | `azure-private-endpoint` | Azure Private Endpoints | Resource Groups, Subnets |
+| `azure-storage-account` | Azure Storage Accounts (V2, Data Lake Gen2) | Resource Groups, Private Endpoints |
 
 ## 🏗️ Architecture
 
@@ -179,7 +180,8 @@ one-platform/
 │   │   ├── azure-resource-group/
 │   │   ├── azure-vnet/
 │   │   ├── azure-subnet/
-│   │   └── azure-private-endpoint/
+│   │   ├── azure-private-endpoint/
+│   │   └── azure-storage-account/
 │   └── stacks/
 │       ├── catalog/                  # Component defaults and mixins
 │       ├── orgs/                     # Organization defaults
@@ -224,7 +226,7 @@ Terraform state is managed using Azure Storage:
 
 - **Latest Release**: [![Latest Release](https://img.shields.io/github/v/release/Damianjsp/one-platform)](https://github.com/Damianjsp/one-platform/releases)
 - **Build Status**: All components validated ✅
-- **Coverage**: 4 Azure components available
+- **Coverage**: 5 Azure components available
 - **Environments**: Development environment configured
 
 ## 📚 Additional Resources
