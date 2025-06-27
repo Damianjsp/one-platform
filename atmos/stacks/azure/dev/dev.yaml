@@ -6,6 +6,8 @@ import:
   - catalog/azure-vnet/mixins/dev
   - catalog/azure-subnet/defaults
   - catalog/azure-subnet/mixins/dev
+  - catalog/azure-nsg/defaults
+  - catalog/azure-nsg/mixins/dev
   - catalog/azure-private-endpoint/defaults
   - catalog/azure-private-endpoint/mixins/dev
   - catalog/azure-storage-account/defaults
@@ -40,6 +42,15 @@ components:
         virtual_network_name: "${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}"
         # Enable private endpoint network policies
         private_endpoint_network_policies: "Enabled"
+
+    azure-nsg:
+      vars:
+        name: "web"
+        location: "${var.location}"
+        # Reference the resource group component
+        resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+        # Associate with the subnet using component reference
+        subnet_ids: ["${atmos.Component('azure-subnet').outputs.subnet_id}"]
 
     # Multiple Private Endpoint Examples - Different Services with Different Configurations
     
