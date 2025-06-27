@@ -1,8 +1,10 @@
+# stacks/catalog/azure-private-endpoint/defaults.yaml
+
 components:
   terraform:
-    azure-resource-group:
+    azure-private-endpoint:
       metadata:
-        component: azure-rsg
+        component: azure-private-endpoint
       vars:
         enabled: true
         delimiter: ""
@@ -12,3 +14,4 @@ components:
           - stage
           - name
           - namespace
+        is_manual_connection: false

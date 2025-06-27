@@ -13,3 +13,9 @@ terraform:
 vars:
   namespace: "lazylabs"
   tenant: "core"
+  delimiter: ""
+  label_order:
+    - environment
+    - stage
+    - name
+    - namespace

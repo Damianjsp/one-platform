@@ -1,0 +1,10 @@
+# stacks/catalog/azure-private-endpoint/mixins/prod.yaml
+
+components:
+  terraform:
+    azure-private-endpoint:
+      vars:
+        is_manual_connection: false
+        ip_configurations: []
+        # Production might require specific DNS zone groups
+        # These will be configured per component instance

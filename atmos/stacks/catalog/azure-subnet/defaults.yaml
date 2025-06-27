@@ -1,8 +1,10 @@
+# stacks/catalog/azure-subnet/defaults.yaml
+
 components:
   terraform:
-    azure-resource-group:
+    azure-subnet:
       metadata:
-        component: azure-rsg
+        component: azure-subnet
       vars:
         enabled: true
         delimiter: ""

@@ -1,8 +1,10 @@
+# stacks/catalog/azure-vnet/defaults.yaml
+
 components:
   terraform:
-    azure-resource-group:
+    azure-vnet:
       metadata:
-        component: azure-rsg
+        component: azure-vnet
       vars:
         enabled: true
         delimiter: ""
