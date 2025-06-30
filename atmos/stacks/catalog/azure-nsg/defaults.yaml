@@ -2,7 +2,6 @@ components:
   terraform:
     azure-nsg:
       metadata:
-        type: abstract
         component: azure-nsg
       
       settings:
@@ -13,6 +12,9 @@ components:
       vars:
         enabled: true
         name: "nsg"
+        # NSG uses no separators (inherits from org defaults)
+        delimiter: ""
+        regex_replace_chars: "/[^a-zA-Z0-9]/"
         
         # Default security rules that block common administrative ports from internet
         # These can be overridden in environment mixins or stack configurations

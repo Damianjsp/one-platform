@@ -29,6 +29,11 @@ schemas:
   jsonschema:
     base_path: schemas/jsonschema
 
+templates:
+  settings:
+    enabled: true
+    evaluations: 2
+
 settings:
   logs:
     file: "/dev/stdout"
