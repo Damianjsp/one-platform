@@ -1,0 +1,42 @@
+components:
+  terraform:
+    azure-keyvault:
+      metadata:
+        description: "Azure Key Vault component for secure key, secret, and certificate management"
+      
+      vars:
+        enabled: true
+        
+        # Key Vault SKU - standard is sufficient for most use cases
+        sku_name: "standard"
+        
+        # Security Configuration - Production-ready defaults
+        purge_protection_enabled: true
+        soft_delete_retention_days: 90
+        public_network_access_enabled: false
+        
+        # Azure Service Integration - Disabled by default for security
+        enabled_for_deployment: false
+        enabled_for_disk_encryption: false
+        enabled_for_template_deployment: false
+        
+        # Access Control - Use traditional access policies by default
+        enable_rbac_authorization: false
+        add_current_user_access: true
+        
+        # Network ACLs - Secure by default
+        network_acls:
+          default_action: "Deny"
+          bypass: "AzureServices"
+          ip_rules: []
+          virtual_network_subnet_ids: []
+        
+        # Empty collections - to be populated per environment
+        access_policies: {}
+        certificate_contacts: []
+        secrets: {}
+        keys: {}
+        certificates: {}
+        
+        # Diagnostic settings - optional, configure per environment
+        diagnostic_settings: null

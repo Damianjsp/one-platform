@@ -1,0 +1,41 @@
+components:
+  terraform:
+    azure-keyvault:
+      vars:
+        # Development environment overrides
+        
+        # Relaxed security for development - Allow public access for easier development
+        public_network_access_enabled: true
+        
+        # Less restrictive network ACLs for development
+        network_acls:
+          default_action: "Allow"
+          bypass: "AzureServices"
+        
+        # Reduced retention for cost optimization in dev
+        soft_delete_retention_days: 7
+        
+        # Enable Azure service integrations for testing
+        enabled_for_template_deployment: true
+        
+        # Disable current user access to avoid Azure AD permission issues
+        add_current_user_access: false
+        
+        # Add development-specific access policies if needed
+        access_policies: {}
+        
+        # Development secrets (non-sensitive examples)
+        secrets:
+          app-environment:
+            value: "development"
+            content_type: "environment"
+          debug-mode:
+            value: "true"
+            content_type: "configuration"
+        
+        # Sample development key for testing
+        keys:
+          dev-encryption-key:
+            key_type: "RSA"
+            key_size: 2048
+            key_opts: ["encrypt", "decrypt", "sign", "verify"]

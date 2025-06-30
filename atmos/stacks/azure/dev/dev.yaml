@@ -12,6 +12,8 @@ import:
   - catalog/azure-private-endpoint/mixins/dev
   - catalog/azure-storage-account/defaults
   - catalog/azure-storage-account/mixins/dev
+  - catalog/azure-keyvault/defaults
+  - catalog/azure-keyvault/mixins/dev
 
 vars:
   environment: "eus"
@@ -226,6 +228,97 @@ components:
         subnet_id: "{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"
         private_connection_resource_id: "{{ (atmos.Component \"azure-storage-account-datalake\" .stack).outputs.storage_account_id }}"
         subresource_names: ["dfs"]
+        is_manual_connection: false
+
+    # =============================================================================
+    # AZURE KEY VAULT EXAMPLES
+    # =============================================================================
+
+    # Example 1: Development Key Vault with Basic Configuration
+    azure-keyvault-dev:
+      metadata:
+        component: azure-keyvault
+      vars:
+        name: "secrets"
+        location: "eastus"
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        
+        # Disable current user access to avoid Azure AD permission issues
+        add_current_user_access: false
+        
+        # Add explicit access policy for the current service principal
+        access_policies:
+          current-sp:
+            object_id: "5fd82de6-3a8c-4798-8285-be43acda34b0"
+            key_permissions: ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "Decrypt", "Encrypt", "UnwrapKey", "WrapKey", "Verify", "Sign", "Purge"]
+            secret_permissions: ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
+            certificate_permissions: ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "ManageContacts", "ManageIssuers", "GetIssuers", "ListIssuers", "SetIssuers", "DeleteIssuers", "Purge"]
+        
+        # Development-friendly settings (overrides from dev mixin)
+        public_network_access_enabled: true
+        network_acls:
+          default_action: "Allow"
+          bypass: "AzureServices"
+        
+        # Additional development secrets
+        secrets:
+          database-connection:
+            value: "Server=dev-sql.database.windows.net;Database=appdb;..."
+            content_type: "connection-string"
+          api-base-url:
+            value: "https://api-dev.company.com"
+            content_type: "url"
+
+    # Example 2: Key Vault with Private Endpoint for Secure Access
+    azure-keyvault-secure:
+      metadata:
+        component: azure-keyvault
+      vars:
+        name: "secure"
+        attributes: ["private"]
+        location: "eastus"
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        
+        # Disable current user access to avoid Azure AD permission issues
+        add_current_user_access: false
+        
+        # Add explicit access policy for the current service principal
+        access_policies:
+          current-sp:
+            object_id: "5fd82de6-3a8c-4798-8285-be43acda34b0"
+            key_permissions: ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "Decrypt", "Encrypt", "UnwrapKey", "WrapKey", "Verify", "Sign", "Purge"]
+            secret_permissions: ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
+            certificate_permissions: ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "ManageContacts", "ManageIssuers", "GetIssuers", "ListIssuers", "SetIssuers", "DeleteIssuers", "Purge"]
+        
+        # Secure configuration with private endpoint access only
+        public_network_access_enabled: false
+        network_acls:
+          default_action: "Deny"
+          bypass: "AzureServices"
+          # Note: Subnet would need service endpoint for Microsoft.KeyVault to use subnet_ids
+          # virtual_network_subnet_ids: ["{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"]
+        
+        # Application-specific secrets
+        secrets:
+          jwt-signing-key:
+            value: "your-super-secret-jwt-key-here"
+            content_type: "jwt-key"
+            expiration_date: "2025-12-31T23:59:59Z"
+        
+        # Encryption keys (manually created outside Terraform due to private endpoint access)
+
+    # Private Endpoint for Secure Key Vault
+    azure-private-endpoint-keyvault:
+      metadata:
+        component: azure-private-endpoint
+      vars:
+        name: "kvsecure"
+        attributes: ["vault"]
+        location: "eastus"
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        subnet_id: "{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"
+        private_connection_resource_id: "{{ (atmos.Component \"azure-keyvault-secure\" .stack).outputs.key_vault_id }}"
+        subresource_names: ["vault"]
         is_manual_connection: false
 
     # Example 2: Data Lake Gen2 Storage Account

@@ -44,13 +44,19 @@ one-platform/
 │   │       ├── azure-resource-group/
 │   │       ├── azure-vnet/
 │   │       ├── azure-subnet/
-│   │       └── azure-private-endpoint/
+│   │       ├── azure-nsg/
+│   │       ├── azure-private-endpoint/
+│   │       ├── azure-storage-account/
+│   │       └── azure-keyvault/
 │   └── stacks/                      # Stack configurations
 │       ├── catalog/                 # Component defaults & mixins
 │       │   ├── azure-rsg/
 │       │   ├── azure-vnet/
 │       │   ├── azure-subnet/
-│       │   └── azure-private-endpoint/
+│       │   ├── azure-nsg/
+│       │   ├── azure-private-endpoint/
+│       │   ├── azure-storage-account/
+│       │   └── azure-keyvault/
 │       ├── orgs/                    # Organization defaults
 │       │   └── lazylabs/
 │       └── azure/                   # Environment stacks
@@ -69,19 +75,42 @@ one-platform/
    - `azure-vnet`: Network foundation
    - `azure-subnet`: Network segmentation
 
-2. **Service Components**
+2. **Network Components**
+   - `azure-nsg`: Network security groups and rules
    - `azure-private-endpoint`: Secure connectivity
-   - Future: Storage, Key Vault, SQL, etc.
+
+3. **Service Components**
+   - `azure-storage-account`: Storage services (V2, ADLS Gen2)
+   - `azure-keyvault`: Key and secrets management
+
+4. **Future Components**
+   - SQL Database, Container Services, etc.
 
 ### Component Relationships
 
 ```mermaid
-graph LR
+graph TB
     A[azure-resource-group] --> B[azure-vnet]
     A --> C[azure-subnet]
-    A --> D[azure-private-endpoint]
+    A --> D[azure-nsg]
+    A --> E[azure-storage-account]
+    A --> F[azure-keyvault]
+    A --> G[azure-private-endpoint]
+    
     B --> C
     C --> D
+    C --> G
+    
+    E --> G
+    F --> G
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#f3e5f5
+    style D fill:#f3e5f5
+    style E fill:#e8f5e8
+    style F fill:#fff3e0
+    style G fill:#fff3e0
 ```
 
 ### Component Design Patterns
@@ -204,15 +233,38 @@ virtual_network_name: "${var.environment}${var.stage}${components.terraform.azur
 graph TD
     A[azure-resource-group] --> B[azure-vnet]
     A --> C[azure-subnet]
-    A --> D[azure-private-endpoint]
+    A --> D[azure-nsg]
+    A --> E[azure-storage-account]
+    A --> F[azure-keyvault]
+    A --> G[azure-private-endpoint]
+    
     B --> C
     C --> D
+    C --> G
     
-    subgraph "External Dependencies"
-        E[Storage Account] --> D
-        F[Key Vault] --> D
-        G[SQL Database] --> D
+    E --> G
+    F --> G
+    
+    subgraph "Deployed Services"
+        H[lalbsecretseus<br/>Key Vault Dev] 
+        I[lalbsecureeus<br/>Key Vault Secure]
+        J[lalbgeneraleusybp2<br/>General Storage]
+        K[lalbprivateeus<br/>Private Storage]
+        L[lalbdatalakeadlseus<br/>Data Lake]
     end
+    
+    F --> H
+    F --> I
+    E --> J
+    E --> K
+    E --> L
+    
+    style A fill:#e1f5fe
+    style H fill:#fff3e0
+    style I fill:#ffebee
+    style J fill:#e8f5e8
+    style K fill:#e8f5e8
+    style L fill:#e8f5e8
 ```
 
 ## 🔧 Validation Architecture
@@ -285,6 +337,84 @@ terraform:
 - **No Hardcoded Secrets**: All secrets externalized
 - **Environment Variables**: Runtime secret injection
 - **Azure Key Vault**: Centralized secret storage
+
+#### Key Vault Security Patterns
+
+1. **Development Key Vault** (`azure-keyvault-dev`)
+   ```yaml
+   public_network_access_enabled: true
+   network_acls:
+     default_action: "Allow"
+     bypass: "AzureServices"
+   ```
+   - Public access for development convenience
+   - Development secrets and connection strings
+   - Standard access policies
+
+2. **Secure Key Vault** (`azure-keyvault-secure`)
+   ```yaml
+   public_network_access_enabled: false
+   network_acls:
+     default_action: "Deny"
+     bypass: "AzureServices"
+   ```
+   - Private endpoint access only
+   - Production secrets and encryption keys
+   - Enhanced security with purge protection
+
+#### Private Endpoint Security
+- **Network Isolation**: VNet-only access via 10.0.1.0/24 subnet
+- **DNS Integration**: Private DNS zones for service resolution
+- **Service Endpoints**: Vault, blob, dfs, file, table services
+- **Access Control**: Service principal authentication with explicit permissions
+
+## 🚀 Current Deployment Status
+
+### Infrastructure Overview
+The One Platform currently has a fully operational development environment deployed in Azure East US region with the following architecture:
+
+```
+Azure Subscription: fa626e61-2056-42b0-847a-1aad6fa3b5dd
+└── Resource Group: lalb-services-eus
+    ├── 🌐 Networking
+    │   ├── Virtual Network: lalbnetworkeus (10.0.0.0/16)
+    │   ├── Subnet: lalbeusdevweb (10.0.1.0/24)
+    │   └── Network Security Group: lalbwebeus
+    │
+    ├── 💾 Storage Services
+    │   ├── General Storage: lalbgeneraleusybp2 (Standard V2)
+    │   ├── Private Storage: lalbprivateeus (with private endpoint)
+    │   └── Data Lake: lalbdatalakeadlseus (ADLS Gen2)
+    │
+    ├── 🔐 Security Services
+    │   ├── Dev Key Vault: lalbsecretseus (public access)
+    │   └── Secure Key Vault: lalbsecureeus (private access only)
+    │
+    └── 🔗 Private Endpoints
+        ├── Storage Blob: lalbstgblob + lalbdlblob + lalbdldfs
+        └── Key Vault: lalbkvsecureeus
+```
+
+### Deployment Validation
+All components have been successfully deployed and validated:
+- ✅ Core networking infrastructure operational
+- ✅ Storage accounts with private endpoint connectivity
+- ✅ Key Vault services with dual security models
+- ✅ Private endpoint network isolation
+- ✅ Service principal access policies configured
+
+### Component Status Summary
+| Component | Instance | Status | Access Method |
+|-----------|----------|--------|---------------|
+| Resource Group | lalb-services-eus | ✅ Active | Azure Portal |
+| Virtual Network | lalbnetworkeus | ✅ Active | 10.0.0.0/16 |
+| Subnet | lalbeusdevweb | ✅ Active | 10.0.1.0/24 |
+| NSG | lalbwebeus | ✅ Active | Subnet attached |
+| General Storage | lalbgeneraleusybp2 | ✅ Active | Public endpoint |
+| Private Storage | lalbprivateeus | ✅ Active | Private endpoint |
+| Data Lake | lalbdatalakeadlseus | ✅ Active | Private endpoint |
+| Dev Key Vault | lalbsecretseus | ✅ Active | Public endpoint |
+| Secure Key Vault | lalbsecureeus | ✅ Active | Private endpoint only |
 
 ## 📈 Scalability Architecture
 

@@ -26,13 +26,15 @@ This repository provides a centralized platform for managing infrastructure depl
 
 ## 🧩 Available Components
 
-| Component | Description | Dependencies |
-|-----------|-------------|--------------|
-| `azure-resource-group` | Azure Resource Groups | None |
-| `azure-vnet` | Azure Virtual Networks | Resource Groups |
-| `azure-subnet` | Azure Subnets | Resource Groups, VNets |
-| `azure-private-endpoint` | Azure Private Endpoints | Resource Groups, Subnets |
-| `azure-storage-account` | Azure Storage Accounts (V2, Data Lake Gen2) | Resource Groups, Private Endpoints |
+| Component | Description | Dependencies | Status |
+|-----------|-------------|--------------|---------|
+| `azure-resource-group` | Azure Resource Groups | None | ✅ Deployed |
+| `azure-vnet` | Azure Virtual Networks | Resource Groups | ✅ Deployed |
+| `azure-subnet` | Azure Subnets | Resource Groups, VNets | ✅ Deployed |
+| `azure-nsg` | Azure Network Security Groups | Resource Groups, Subnets | ✅ Deployed |
+| `azure-private-endpoint` | Azure Private Endpoints | Resource Groups, Subnets | ✅ Deployed |
+| `azure-storage-account` | Azure Storage Accounts (V2, Data Lake Gen2) | Resource Groups, Private Endpoints | ✅ Deployed |
+| `azure-keyvault` | Azure Key Vault (keys, secrets, certificates) | Resource Groups, Private Endpoints | ✅ Deployed |
 
 ## 🏗️ Architecture
 
@@ -40,6 +42,13 @@ This repository provides a centralized platform for managing infrastructure depl
 ```
 atmos/
 ├── components/terraform/modules/     # Reusable Terraform modules
+│   ├── azure-resource-group/         # Resource group management
+│   ├── azure-vnet/                   # Virtual network configuration
+│   ├── azure-subnet/                 # Subnet management with private endpoint support
+│   ├── azure-nsg/                    # Network security groups
+│   ├── azure-private-endpoint/       # Private endpoint connectivity
+│   ├── azure-storage-account/        # Storage accounts (V2, ADLS Gen2)
+│   └── azure-keyvault/               # Key Vault for secrets management
 ├── stacks/catalog/                   # Component defaults and mixins
 ├── stacks/orgs/                      # Organization defaults
 └── stacks/azure/                     # Environment-specific configurations
@@ -98,6 +107,10 @@ atmos terraform plan azure-resource-group -s core-eus-dev
 
 # Apply a component
 atmos terraform apply azure-resource-group -s core-eus-dev
+
+# Deploy Key Vault components
+atmos terraform apply azure-keyvault-dev -s core-eus-dev
+atmos terraform apply azure-keyvault-secure -s core-eus-dev
 
 # Validate all components
 ./scripts/validate-all-stacks.sh
@@ -170,6 +183,54 @@ azure-private-endpoint-keyvault:
 
 See [Multiple Private Endpoints Patterns](docs/multiple-private-endpoints-patterns.md) for detailed examples.
 
+## 🔒 Security Features
+
+### Key Vault Implementation
+The platform includes comprehensive Azure Key Vault integration with two deployment patterns:
+
+#### Development Key Vault (`azure-keyvault-dev`)
+- **Public Access**: Enabled for development convenience
+- **Use Cases**: Development secrets, connection strings, API endpoints
+- **Access Policies**: Service principal with full permissions
+- **Example Secrets**: Database connections, API base URLs
+
+#### Secure Key Vault (`azure-keyvault-secure`) 
+- **Private Access Only**: Network access through private endpoint
+- **Enhanced Security**: Public network access disabled
+- **Network ACLs**: Deny all public traffic by default
+- **Use Cases**: Production secrets, JWT signing keys, encryption keys
+- **Purge Protection**: Enabled for data safety
+
+### Private Endpoint Connectivity
+- **VNet Integration**: Secure access from `10.0.1.0/24` subnet
+- **DNS Resolution**: Automatic private DNS integration
+- **Service Endpoints**: Support for vault, blob, dfs, file, table services
+- **Network Policies**: Subnet configured for private endpoint traffic
+
+## 🏗️ Current Deployment
+
+### Core Infrastructure ✅
+```
+Resource Group: lalb-services-eus
+├── Virtual Network: lalbnetworkeus (10.0.0.0/16)
+├── Subnet: lalbeusdevweb (10.0.1.0/24)
+└── Network Security Group: lalbwebeus
+```
+
+### Storage Services ✅
+```
+├── General Storage: lalbgeneraleusybp2
+├── Private Storage: lalbprivateeus + private endpoint
+└── Data Lake Storage: lalbdatalakeadlseus + blob/dfs endpoints
+```
+
+### Security Services ✅
+```
+├── Dev Key Vault: lalbsecretseus (public access)
+├── Secure Key Vault: lalbsecureeus (private access)
+└── Private Endpoint: lalbkvsecureeus
+```
+
 ## 📁 Project Structure
 
 ```
@@ -180,8 +241,10 @@ one-platform/
 │   │   ├── azure-resource-group/
 │   │   ├── azure-vnet/
 │   │   ├── azure-subnet/
+│   │   ├── azure-nsg/
 │   │   ├── azure-private-endpoint/
-│   │   └── azure-storage-account/
+│   │   ├── azure-storage-account/
+│   │   └── azure-keyvault/
 │   └── stacks/
 │       ├── catalog/                  # Component defaults and mixins
 │       ├── orgs/                     # Organization defaults
@@ -226,8 +289,9 @@ Terraform state is managed using Azure Storage:
 
 - **Latest Release**: [![Latest Release](https://img.shields.io/github/v/release/Damianjsp/one-platform)](https://github.com/Damianjsp/one-platform/releases)
 - **Build Status**: All components validated ✅
-- **Coverage**: 5 Azure components available
-- **Environments**: Development environment configured
+- **Coverage**: 7 Azure components available
+- **Environments**: Development environment fully deployed
+- **Infrastructure**: Core networking, storage, and security services operational
 
 ## 📚 Additional Resources
 
