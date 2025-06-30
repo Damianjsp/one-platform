@@ -7,10 +7,3 @@ components:
         component: azure-vnet
       vars:
         enabled: true
-        delimiter: ""
-        regex_replace_chars: "/[^a-zA-Z0-9]/"
-        label_order:
-          - environment
-          - stage
-          - name
-          - namespace

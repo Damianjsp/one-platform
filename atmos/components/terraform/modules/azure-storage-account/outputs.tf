@@ -116,51 +116,51 @@ output "secondary_dfs_endpoint" {
   value       = var.enabled && var.is_hns_enabled ? azurerm_storage_account.this[0].secondary_dfs_endpoint : null
 }
 
-# Private Endpoint Outputs
-output "private_endpoint_blob" {
-  description = "Private endpoint configuration for blob service"
-  value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "blob") ? {
-    id   = module.private_endpoint_blob[0].private_endpoint_id
-    name = module.private_endpoint_blob[0].private_endpoint_name
-    network_interface = module.private_endpoint_blob[0].network_interface
-  } : null
-}
+# Private Endpoint Outputs - Temporarily disabled
+# output "private_endpoint_blob" {
+#   description = "Private endpoint configuration for blob service"
+#   value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "blob") ? {
+#     id   = module.private_endpoint_blob[0].private_endpoint_id
+#     name = module.private_endpoint_blob[0].private_endpoint_name
+#     network_interface = module.private_endpoint_blob[0].network_interface
+#   } : null
+# }
 
-output "private_endpoint_file" {
-  description = "Private endpoint configuration for file service"
-  value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "file") ? {
-    id   = module.private_endpoint_file[0].private_endpoint_id
-    name = module.private_endpoint_file[0].private_endpoint_name
-    network_interface = module.private_endpoint_file[0].network_interface
-  } : null
-}
+# output "private_endpoint_file" {
+#   description = "Private endpoint configuration for file service"
+#   value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "file") ? {
+#     id   = module.private_endpoint_file[0].private_endpoint_id
+#     name = module.private_endpoint_file[0].private_endpoint_name
+#     network_interface = module.private_endpoint_file[0].network_interface
+#   } : null
+# }
 
-output "private_endpoint_queue" {
-  description = "Private endpoint configuration for queue service"
-  value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "queue") ? {
-    id   = module.private_endpoint_queue[0].private_endpoint_id
-    name = module.private_endpoint_queue[0].private_endpoint_name
-    network_interface = module.private_endpoint_queue[0].network_interface
-  } : null
-}
+# output "private_endpoint_queue" {
+#   description = "Private endpoint configuration for queue service"
+#   value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "queue") ? {
+#     id   = module.private_endpoint_queue[0].private_endpoint_id
+#     name = module.private_endpoint_queue[0].private_endpoint_name
+#     network_interface = module.private_endpoint_queue[0].network_interface
+#   } : null
+# }
 
-output "private_endpoint_table" {
-  description = "Private endpoint configuration for table service"
-  value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "table") ? {
-    id   = module.private_endpoint_table[0].private_endpoint_id
-    name = module.private_endpoint_table[0].private_endpoint_name
-    network_interface = module.private_endpoint_table[0].network_interface
-  } : null
-}
+# output "private_endpoint_table" {
+#   description = "Private endpoint configuration for table service"
+#   value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "table") ? {
+#     id   = module.private_endpoint_table[0].private_endpoint_id
+#     name = module.private_endpoint_table[0].private_endpoint_name
+#     network_interface = module.private_endpoint_table[0].network_interface
+#   } : null
+# }
 
-output "private_endpoint_dfs" {
-  description = "Private endpoint configuration for dfs service (Data Lake Gen2)"
-  value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "dfs") ? {
-    id   = module.private_endpoint_dfs[0].private_endpoint_id
-    name = module.private_endpoint_dfs[0].private_endpoint_name
-    network_interface = module.private_endpoint_dfs[0].network_interface
-  } : null
-}
+# output "private_endpoint_dfs" {
+#   description = "Private endpoint configuration for dfs service (Data Lake Gen2)"
+#   value = var.enabled && var.create_private_endpoints && contains(var.private_endpoint_services, "dfs") ? {
+#     id   = module.private_endpoint_dfs[0].private_endpoint_id
+#     name = module.private_endpoint_dfs[0].private_endpoint_name
+#     network_interface = module.private_endpoint_dfs[0].network_interface
+#   } : null
+# }
 
 # Service Configuration
 output "enabled_services" {

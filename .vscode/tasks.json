@@ -2,24 +2,12 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Clean merged branches",
+            "label": "Git: Clean merged branches",
             "type": "shell",
-            "command": "git",
+            "command": "bash",
             "args": [
-                "branch",
-                "--merged",
-                "main",
-                "|",
-                "grep",
-                "-v",
-                "main",
-                "|",
-                "xargs",
-                "-n",
-                "1",
-                "git",
-                "branch",
-                "-d"
+                "-c",
+                "echo 'Fetching and pruning...' && git fetch --prune && echo 'Finding merged branches...' && git branch --merged | grep -E -v '(^\\*|main$|master$|develop$)' | xargs -r git branch -d && echo 'Cleaning remote tracking...' && git remote prune origin && echo 'Done!'"
             ],
             "group": "build",
             "presentation": {

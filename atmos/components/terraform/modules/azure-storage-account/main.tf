@@ -43,7 +43,13 @@ locals {
       subresource = service
       enabled     = contains(var.enabled_services, service) || service == "dfs" && local.is_data_lake
     }
-  } : {}
+  } : {
+    blob  = { subresource = "blob", enabled = false }
+    file  = { subresource = "file", enabled = false }
+    queue = { subresource = "queue", enabled = false }
+    table = { subresource = "table", enabled = false }
+    dfs   = { subresource = "dfs", enabled = false }
+  }
 }
 
 # Primary Storage Account
@@ -207,148 +213,149 @@ resource "azurerm_storage_account" "this" {
   }
 }
 
-# Private Endpoints for Storage Services
-module "private_endpoint_blob" {
-  count  = local.private_endpoints_to_create["blob"].enabled ? 1 : 0
-  source = "../azure-private-endpoint"
+# Private Endpoints for Storage Services - Temporarily disabled due to module compatibility issues
+# TODO: Fix private endpoint modules to work with count/for_each by removing provider configurations
+# module "private_endpoint_blob" {
+#   count  = local.private_endpoints_to_create["blob"].enabled ? 1 : 0
+#   source = "../azure-private-endpoint"
+#
+#   enabled                        = true
+#   name                          = "${var.name}blob"
+#   attributes                    = concat(var.attributes, ["blob"])
+#   location                      = var.location
+#   resource_group_name           = var.resource_group_name
+#   subnet_id                     = var.private_endpoint_subnet_id
+#   private_connection_resource_id = azurerm_storage_account.this[0].id
+#   subresource_names             = ["blob"]
+#   is_manual_connection          = var.private_endpoint_manual_connection
+#   private_dns_zone_group        = var.private_endpoint_dns_zone_group_blob
+#
+#   # Inherit label configuration
+#   namespace               = var.namespace
+#   tenant                 = var.tenant
+#   environment            = var.environment
+#   stage                  = var.stage
+#   delimiter              = var.delimiter
+#   tags                   = var.tags
+#   regex_replace_chars    = var.regex_replace_chars
+#   label_order            = var.label_order
+#   label_key_case         = var.label_key_case
+#   label_value_case       = var.label_value_case
+#   id_length_limit        = var.id_length_limit
+# }
 
-  enabled                        = true
-  name                          = "${var.name}blob"
-  attributes                    = concat(var.attributes, ["blob"])
-  location                      = var.location
-  resource_group_name           = var.resource_group_name
-  subnet_id                     = var.private_endpoint_subnet_id
-  private_connection_resource_id = azurerm_storage_account.this[0].id
-  subresource_names             = ["blob"]
-  is_manual_connection          = var.private_endpoint_manual_connection
-  private_dns_zone_group        = var.private_endpoint_dns_zone_group_blob
+# module "private_endpoint_file" {
+#   count  = local.private_endpoints_to_create["file"].enabled ? 1 : 0
+#   source = "../azure-private-endpoint"
+#
+#   enabled                        = true
+#   name                          = "${var.name}file"
+#   attributes                    = concat(var.attributes, ["file"])
+#   location                      = var.location
+#   resource_group_name           = var.resource_group_name
+#   subnet_id                     = var.private_endpoint_subnet_id
+#   private_connection_resource_id = azurerm_storage_account.this[0].id
+#   subresource_names             = ["file"]
+#   is_manual_connection          = var.private_endpoint_manual_connection
+#   private_dns_zone_group        = var.private_endpoint_dns_zone_group_file
+#
+#   # Inherit label configuration
+#   namespace               = var.namespace
+#   tenant                 = var.tenant
+#   environment            = var.environment
+#   stage                  = var.stage
+#   delimiter              = var.delimiter
+#   tags                   = var.tags
+#   regex_replace_chars    = var.regex_replace_chars
+#   label_order            = var.label_order
+#   label_key_case         = var.label_key_case
+#   label_value_case       = var.label_value_case
+#   id_length_limit        = var.id_length_limit
+# }
 
-  # Inherit label configuration
-  namespace               = var.namespace
-  tenant                 = var.tenant
-  environment            = var.environment
-  stage                  = var.stage
-  delimiter              = var.delimiter
-  tags                   = var.tags
-  regex_replace_chars    = var.regex_replace_chars
-  label_order            = var.label_order
-  label_key_case         = var.label_key_case
-  label_value_case       = var.label_value_case
-  id_length_limit        = var.id_length_limit
-}
+# module "private_endpoint_queue" {
+#   count  = local.private_endpoints_to_create["queue"].enabled ? 1 : 0
+#   source = "../azure-private-endpoint"
+#
+#   enabled                        = true
+#   name                          = "${var.name}queue"
+#   attributes                    = concat(var.attributes, ["queue"])
+#   location                      = var.location
+#   resource_group_name           = var.resource_group_name
+#   subnet_id                     = var.private_endpoint_subnet_id
+#   private_connection_resource_id = azurerm_storage_account.this[0].id
+#   subresource_names             = ["queue"]
+#   is_manual_connection          = var.private_endpoint_manual_connection
+#   private_dns_zone_group        = var.private_endpoint_dns_zone_group_queue
+#
+#   # Inherit label configuration
+#   namespace               = var.namespace
+#   tenant                 = var.tenant
+#   environment            = var.environment
+#   stage                  = var.stage
+#   delimiter              = var.delimiter
+#   tags                   = var.tags
+#   regex_replace_chars    = var.regex_replace_chars
+#   label_order            = var.label_order
+#   label_key_case         = var.label_key_case
+#   label_value_case       = var.label_value_case
+#   id_length_limit        = var.id_length_limit
+# }
 
-module "private_endpoint_file" {
-  count  = local.private_endpoints_to_create["file"].enabled ? 1 : 0
-  source = "../azure-private-endpoint"
+# module "private_endpoint_table" {
+#   count  = local.private_endpoints_to_create["table"].enabled ? 1 : 0
+#   source = "../azure-private-endpoint"
+#
+#   enabled                        = true
+#   name                          = "${var.name}table"
+#   attributes                    = concat(var.attributes, ["table"])
+#   location                      = var.location
+#   resource_group_name           = var.resource_group_name
+#   subnet_id                     = var.private_endpoint_subnet_id
+#   private_connection_resource_id = azurerm_storage_account.this[0].id
+#   subresource_names             = ["table"]
+#   is_manual_connection          = var.private_endpoint_manual_connection
+#   private_dns_zone_group        = var.private_endpoint_dns_zone_group_table
+#
+#   # Inherit label configuration
+#   namespace               = var.namespace
+#   tenant                 = var.tenant
+#   environment            = var.environment
+#   stage                  = var.stage
+#   delimiter              = var.delimiter
+#   tags                   = var.tags
+#   regex_replace_chars    = var.regex_replace_chars
+#   label_order            = var.label_order
+#   label_key_case         = var.label_key_case
+#   label_value_case       = var.label_value_case
+#   id_length_limit        = var.id_length_limit
+# }
 
-  enabled                        = true
-  name                          = "${var.name}file"
-  attributes                    = concat(var.attributes, ["file"])
-  location                      = var.location
-  resource_group_name           = var.resource_group_name
-  subnet_id                     = var.private_endpoint_subnet_id
-  private_connection_resource_id = azurerm_storage_account.this[0].id
-  subresource_names             = ["file"]
-  is_manual_connection          = var.private_endpoint_manual_connection
-  private_dns_zone_group        = var.private_endpoint_dns_zone_group_file
-
-  # Inherit label configuration
-  namespace               = var.namespace
-  tenant                 = var.tenant
-  environment            = var.environment
-  stage                  = var.stage
-  delimiter              = var.delimiter
-  tags                   = var.tags
-  regex_replace_chars    = var.regex_replace_chars
-  label_order            = var.label_order
-  label_key_case         = var.label_key_case
-  label_value_case       = var.label_value_case
-  id_length_limit        = var.id_length_limit
-}
-
-module "private_endpoint_queue" {
-  count  = local.private_endpoints_to_create["queue"].enabled ? 1 : 0
-  source = "../azure-private-endpoint"
-
-  enabled                        = true
-  name                          = "${var.name}queue"
-  attributes                    = concat(var.attributes, ["queue"])
-  location                      = var.location
-  resource_group_name           = var.resource_group_name
-  subnet_id                     = var.private_endpoint_subnet_id
-  private_connection_resource_id = azurerm_storage_account.this[0].id
-  subresource_names             = ["queue"]
-  is_manual_connection          = var.private_endpoint_manual_connection
-  private_dns_zone_group        = var.private_endpoint_dns_zone_group_queue
-
-  # Inherit label configuration
-  namespace               = var.namespace
-  tenant                 = var.tenant
-  environment            = var.environment
-  stage                  = var.stage
-  delimiter              = var.delimiter
-  tags                   = var.tags
-  regex_replace_chars    = var.regex_replace_chars
-  label_order            = var.label_order
-  label_key_case         = var.label_key_case
-  label_value_case       = var.label_value_case
-  id_length_limit        = var.id_length_limit
-}
-
-module "private_endpoint_table" {
-  count  = local.private_endpoints_to_create["table"].enabled ? 1 : 0
-  source = "../azure-private-endpoint"
-
-  enabled                        = true
-  name                          = "${var.name}table"
-  attributes                    = concat(var.attributes, ["table"])
-  location                      = var.location
-  resource_group_name           = var.resource_group_name
-  subnet_id                     = var.private_endpoint_subnet_id
-  private_connection_resource_id = azurerm_storage_account.this[0].id
-  subresource_names             = ["table"]
-  is_manual_connection          = var.private_endpoint_manual_connection
-  private_dns_zone_group        = var.private_endpoint_dns_zone_group_table
-
-  # Inherit label configuration
-  namespace               = var.namespace
-  tenant                 = var.tenant
-  environment            = var.environment
-  stage                  = var.stage
-  delimiter              = var.delimiter
-  tags                   = var.tags
-  regex_replace_chars    = var.regex_replace_chars
-  label_order            = var.label_order
-  label_key_case         = var.label_key_case
-  label_value_case       = var.label_value_case
-  id_length_limit        = var.id_length_limit
-}
-
-module "private_endpoint_dfs" {
-  count  = local.private_endpoints_to_create["dfs"].enabled ? 1 : 0
-  source = "../azure-private-endpoint"
-
-  enabled                        = true
-  name                          = "${var.name}dfs"
-  attributes                    = concat(var.attributes, ["dfs"])
-  location                      = var.location
-  resource_group_name           = var.resource_group_name
-  subnet_id                     = var.private_endpoint_subnet_id
-  private_connection_resource_id = azurerm_storage_account.this[0].id
-  subresource_names             = ["dfs"]
-  is_manual_connection          = var.private_endpoint_manual_connection
-  private_dns_zone_group        = var.private_endpoint_dns_zone_group_dfs
-
-  # Inherit label configuration
-  namespace               = var.namespace
-  tenant                 = var.tenant
-  environment            = var.environment
-  stage                  = var.stage
-  delimiter              = var.delimiter
-  tags                   = var.tags
-  regex_replace_chars    = var.regex_replace_chars
-  label_order            = var.label_order
-  label_key_case         = var.label_key_case
-  label_value_case       = var.label_value_case
-  id_length_limit        = var.id_length_limit
-}
+# module "private_endpoint_dfs" {
+#   count  = local.private_endpoints_to_create["dfs"].enabled ? 1 : 0
+#   source = "../azure-private-endpoint"
+#
+#   enabled                        = true
+#   name                          = "${var.name}dfs"
+#   attributes                    = concat(var.attributes, ["dfs"])
+#   location                      = var.location
+#   resource_group_name           = var.resource_group_name
+#   subnet_id                     = var.private_endpoint_subnet_id
+#   private_connection_resource_id = azurerm_storage_account.this[0].id
+#   subresource_names             = ["dfs"]
+#   is_manual_connection          = var.private_endpoint_manual_connection
+#   private_dns_zone_group        = var.private_endpoint_dns_zone_group_dfs
+#
+#   # Inherit label configuration
+#   namespace               = var.namespace
+#   tenant                 = var.tenant
+#   environment            = var.environment
+#   stage                  = var.stage
+#   delimiter              = var.delimiter
+#   tags                   = var.tags
+#   regex_replace_chars    = var.regex_replace_chars
+#   label_order            = var.label_order
+#   label_key_case         = var.label_key_case
+#   label_value_case       = var.label_value_case
+#   id_length_limit        = var.id_length_limit
+# }

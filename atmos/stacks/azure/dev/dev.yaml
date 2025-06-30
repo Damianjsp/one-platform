@@ -6,6 +6,8 @@ import:
   - catalog/azure-vnet/mixins/dev
   - catalog/azure-subnet/defaults
   - catalog/azure-subnet/mixins/dev
+  - catalog/azure-nsg/defaults
+  - catalog/azure-nsg/mixins/dev
   - catalog/azure-private-endpoint/defaults
   - catalog/azure-private-endpoint/mixins/dev
   - catalog/azure-storage-account/defaults
@@ -28,18 +30,27 @@ components:
         name: "network"
         address_space: ["10.0.0.0/16"]
         dns_servers: ["168.63.129.16"]
-        # Reference the resource group component's variables
-        resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+        # Reference the resource group component's output dynamically
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
 
     azure-subnet:
       vars:
         name: "web"
         address_prefixes: ["10.0.1.0/24"]
-        # Reference the resource group and vnet components
-        resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
-        virtual_network_name: "${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}"
+        # Reference the resource group and vnet components dynamically
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        virtual_network_name: "{{ (atmos.Component \"azure-vnet\" .stack).outputs.vnet_name }}"
         # Enable private endpoint network policies
         private_endpoint_network_policies: "Enabled"
+
+    azure-nsg:
+      vars:
+        name: "web"
+        location: "eastus"
+        # Reference the resource group component dynamically
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        # Associate NSG with the subnet
+        subnet_ids: ["{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"]
 
     # Multiple Private Endpoint Examples - Different Services with Different Configurations
     
@@ -130,39 +141,92 @@ components:
     # AZURE STORAGE ACCOUNT EXAMPLES
     # =============================================================================
 
-    # Example 1: Standard V2 Storage Account with Blob and File Services
+    # Example 1: Standard V2 Storage Account with Blob Services Only
     azure-storage-account-general:
+      metadata:
+        component: azure-storage-account
       vars:
         name: "general"
-        location: "${var.location}"
-        resource_group_name: "${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}"
+        location: "eastus"
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        # Disable private endpoints for now
+        create_private_endpoints: false
+
+    # Example 2: Storage Account (will add private endpoints separately)
+    azure-storage-account-private:
+      metadata:
+        component: azure-storage-account
+      vars:
+        name: "private"
+        location: "eastus"
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        # Disable integrated private endpoints due to module compatibility
+        create_private_endpoints: false
+
+    # Example 3: Data Lake Gen2 Storage Account (will add private endpoints separately)
+    azure-storage-account-datalake:
+      metadata:
+        component: azure-storage-account
+      vars:
+        name: "datalake"
+        attributes: ["adls"]
+        location: "eastus"
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
         
-        # Standard V2 configuration
+        # Data Lake Gen2 configuration
         account_kind: "StorageV2"
         account_tier: "Standard"
-        account_replication_type: "LRS"
-        access_tier: "Hot"
+        account_replication_type: "GRS"
+        is_hns_enabled: true  # Enable hierarchical namespace for Data Lake Gen2
         
-        # Enable blob and file services
+        # Enable blob services for Data Lake
         enabled_services:
           - "blob"
-          - "file"
         
-        # Enable private endpoints for secure access
-        create_private_endpoints: true
-        private_endpoint_services:
-          - "blob"
-          - "file"
-        private_endpoint_subnet_id: "/subscriptions/{subscription-id}/resourceGroups/${var.environment}${var.stage}${components.terraform.azure-resource-group.vars.name}${var.namespace}/providers/Microsoft.Network/virtualNetworks/${var.environment}${var.stage}${components.terraform.azure-vnet.vars.name}${var.namespace}/subnets/${var.environment}${var.stage}${components.terraform.azure-subnet.vars.name}${var.namespace}"
-        
-        # DNS zone groups for private endpoints
-        private_endpoint_dns_zone_group_blob:
-          name: "storage-blob-dns-zone-group"
-          private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.blob.core.windows.net"]
-        
-        private_endpoint_dns_zone_group_file:
-          name: "storage-file-dns-zone-group"
-          private_dns_zone_ids: ["/subscriptions/{subscription-id}/resourceGroups/{dns-rg}/providers/Microsoft.Network/privateDnsZones/privatelink.file.core.windows.net"]
+        # Disable integrated private endpoints due to module compatibility
+        create_private_endpoints: false
+
+    # Private Endpoint for Standard Storage Account - Blob Service
+    azure-private-endpoint-storage-blob:
+      metadata:
+        component: azure-private-endpoint
+      vars:
+        name: "stgblob"
+        attributes: ["blob"]
+        location: "eastus"
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        subnet_id: "{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"
+        private_connection_resource_id: "{{ (atmos.Component \"azure-storage-account-private\" .stack).outputs.storage_account_id }}"
+        subresource_names: ["blob"]
+        is_manual_connection: false
+
+    # Private Endpoint for Data Lake Storage Account - Blob Service
+    azure-private-endpoint-datalake-blob:
+      metadata:
+        component: azure-private-endpoint
+      vars:
+        name: "dlblob"
+        attributes: ["blob"]
+        location: "eastus"
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        subnet_id: "{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"
+        private_connection_resource_id: "{{ (atmos.Component \"azure-storage-account-datalake\" .stack).outputs.storage_account_id }}"
+        subresource_names: ["blob"]
+        is_manual_connection: false
+
+    # Private Endpoint for Data Lake Storage Account - DFS Service
+    azure-private-endpoint-datalake-dfs:
+      metadata:
+        component: azure-private-endpoint
+      vars:
+        name: "dldfs"
+        attributes: ["dfs"]
+        location: "eastus"
+        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        subnet_id: "{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"
+        private_connection_resource_id: "{{ (atmos.Component \"azure-storage-account-datalake\" .stack).outputs.storage_account_id }}"
+        subresource_names: ["dfs"]
+        is_manual_connection: false
 
     # Example 2: Data Lake Gen2 Storage Account
     # azure-storage-account-datalake:

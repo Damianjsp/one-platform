@@ -11,11 +11,11 @@ terraform:
     azurerm:
       features: {}
 vars:
-  namespace: "lazylabs"
+  namespace: "lalb"
   tenant: "core"
   delimiter: ""
+  regex_replace_chars: "/[^a-zA-Z0-9]/"
   label_order:
-    - environment
-    - stage
-    - name
     - namespace
+    - name
+    - environment

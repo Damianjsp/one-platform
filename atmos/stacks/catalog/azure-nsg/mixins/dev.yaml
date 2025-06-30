@@ -1,0 +1,35 @@
+components:
+  terraform:
+    azure-nsg:
+      vars:
+        # Development environment allows more permissive rules for troubleshooting
+        custom_security_rules:
+          AllowHTTP:
+            priority: 100
+            direction: "Inbound"
+            access: "Allow"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_range: "80"
+            source_address_prefix: "*"
+            destination_address_prefix: "*"
+          
+          AllowHTTPS:
+            priority: 101
+            direction: "Inbound"  
+            access: "Allow"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_range: "443"
+            source_address_prefix: "*"
+            destination_address_prefix: "*"
+          
+          AllowDevelopmentPorts:
+            priority: 102
+            direction: "Inbound"
+            access: "Allow"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_ranges: ["3000", "8080", "8443", "9090"]
+            source_address_prefix: "VirtualNetwork"
+            destination_address_prefix: "*"

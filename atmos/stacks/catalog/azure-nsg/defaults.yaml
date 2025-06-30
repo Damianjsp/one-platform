@@ -1,0 +1,106 @@
+components:
+  terraform:
+    azure-nsg:
+      metadata:
+        component: azure-nsg
+      
+      settings:
+        spacelift:
+          workspace_enabled: true
+          autodeploy: false
+      
+      vars:
+        enabled: true
+        name: "nsg"
+        # NSG uses no separators (inherits from org defaults)
+        delimiter: ""
+        regex_replace_chars: "/[^a-zA-Z0-9]/"
+        
+        # Default security rules that block common administrative ports from internet
+        # These can be overridden in environment mixins or stack configurations
+        default_security_rules:
+          DenyRDP:
+            priority: 1000
+            direction: "Inbound"
+            access: "Deny"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_range: "3389"
+            source_address_prefix: "Internet"
+            destination_address_prefix: "*"
+          
+          DenySSH:
+            priority: 1001
+            direction: "Inbound"
+            access: "Deny"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_range: "22"
+            source_address_prefix: "Internet"
+            destination_address_prefix: "*"
+          
+          DenyWinRM:
+            priority: 1002
+            direction: "Inbound"
+            access: "Deny"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_ranges: ["5985", "5986"]
+            source_address_prefix: "Internet"
+            destination_address_prefix: "*"
+          
+          DenySQL:
+            priority: 1003
+            direction: "Inbound"
+            access: "Deny"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_range: "1433"
+            source_address_prefix: "Internet"
+            destination_address_prefix: "*"
+          
+          DenyMySQL:
+            priority: 1004
+            direction: "Inbound"
+            access: "Deny"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_range: "3306"
+            source_address_prefix: "Internet"
+            destination_address_prefix: "*"
+          
+          DenyPostgreSQL:
+            priority: 1005
+            direction: "Inbound"
+            access: "Deny"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_range: "5432"
+            source_address_prefix: "Internet"
+            destination_address_prefix: "*"
+          
+          DenyMongoDB:
+            priority: 1006
+            direction: "Inbound"
+            access: "Deny"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_range: "27017"
+            source_address_prefix: "Internet"
+            destination_address_prefix: "*"
+          
+          DenyRedis:
+            priority: 1007
+            direction: "Inbound"
+            access: "Deny"
+            protocol: "Tcp"
+            source_port_range: "*"
+            destination_port_range: "6379"
+            source_address_prefix: "Internet"
+            destination_address_prefix: "*"
+        
+        # Custom rules can be added per environment
+        custom_security_rules: {}
+        
+        # Subnet IDs to associate with this NSG - typically set in stack configs
+        subnet_ids: []

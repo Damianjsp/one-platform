@@ -5,10 +5,10 @@ components:
         component: azure-rsg
       vars:
         enabled: true
-        delimiter: ""
-        regex_replace_chars: "/[^a-zA-Z0-9]/"
+        # Resource groups use dashes between namespace and rest
+        delimiter: "-"
+        regex_replace_chars: "/[^a-zA-Z0-9-]/"
         label_order:
-          - environment
-          - stage
-          - name
           - namespace
+          - name
+          - environment
