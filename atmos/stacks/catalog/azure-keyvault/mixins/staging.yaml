@@ -1,0 +1,49 @@
+components:
+  terraform:
+    azure-keyvault:
+      vars:
+        # Staging environment overrides - Balance between security and accessibility
+        
+        # Standard SKU sufficient for staging
+        sku_name: "standard"
+        
+        # Production-like security settings
+        purge_protection_enabled: true
+        soft_delete_retention_days: 30  # Shorter than prod for cost optimization
+        public_network_access_enabled: false
+        
+        # Moderate network restrictions
+        network_acls:
+          default_action: "Deny"
+          bypass: "AzureServices"
+          # Configure specific IPs/VNets per deployment
+          ip_rules: []
+          virtual_network_subnet_ids: []
+        
+        # Allow current user access for staging management
+        add_current_user_access: true
+        
+        # Use access policies for staging (simpler than RBAC)
+        enable_rbac_authorization: false
+        
+        # Enable template deployment for staging automation
+        enabled_for_template_deployment: true
+        
+        # Basic diagnostic settings
+        diagnostic_settings:
+          log_categories: 
+            - "AuditEvent"
+          metric_categories:
+            - "AllMetrics"
+        
+        # Staging-specific secrets and keys
+        secrets:
+          app-environment:
+            value: "staging"
+            content_type: "environment"
+        
+        keys:
+          staging-encryption-key:
+            key_type: "RSA"
+            key_size: 2048
+            key_opts: ["encrypt", "decrypt", "sign", "verify"]

@@ -1,0 +1,44 @@
+components:
+  terraform:
+    azure-keyvault:
+      vars:
+        # Production environment overrides
+        
+        # Enhanced security for production
+        sku_name: "premium"  # HSM-backed keys available
+        purge_protection_enabled: true
+        soft_delete_retention_days: 90
+        public_network_access_enabled: false
+        
+        # Strict network access - only from approved networks
+        network_acls:
+          default_action: "Deny"
+          bypass: "AzureServices"
+          # These should be configured per specific production deployment
+          ip_rules: []
+          virtual_network_subnet_ids: []
+        
+        # Disable current user access for production - use RBAC or explicit policies
+        add_current_user_access: false
+        
+        # Enable RBAC for better governance
+        enable_rbac_authorization: true
+        
+        # Production diagnostic settings
+        diagnostic_settings:
+          log_categories: 
+            - "AuditEvent"
+            - "AzurePolicyEvaluationDetails"
+          metric_categories:
+            - "AllMetrics"
+        
+        # Certificate contacts for production notifications
+        certificate_contacts:
+          - email: "security@company.com"
+            name: "Security Team"
+        
+        # Empty by default - secrets should be managed through secure processes
+        secrets: {}
+        keys: {}
+        certificates: {}
+        access_policies: {}
