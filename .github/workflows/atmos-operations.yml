@@ -89,6 +89,9 @@ jobs:
           echo "Component: ${{ inputs.component }}"
           echo "Stack: ${{ inputs.stack }}"
 
+          # Change to atmos directory where atmos.yaml is located
+          cd atmos
+
           if ! atmos validate stacks; then
             echo "❌ Stack configuration validation failed"
             exit 1
@@ -107,6 +110,9 @@ jobs:
       - name: Get components list
         id: components
         run: |
+          # Change to atmos directory
+          cd atmos
+          
           if [ "${{ inputs.component }}" = "*" ]; then
             echo "🔍 Getting all components for stack ${{ inputs.stack }}..."
             COMPONENTS=$(atmos list components --stack="${{ inputs.stack }}" \

@@ -63,6 +63,7 @@ jobs:
       - name: Validate stack configuration
         run: |
           echo "🔍 Validating Atmos stack configuration..."
+          cd atmos
           atmos validate stacks
 
       - name: Detect changed components
@@ -102,6 +103,28 @@ jobs:
             sort -u | tr '\n' ' ' | xargs)
           STACKS=$(echo $STACKS | tr ' ' '\n' | \
             sort -u | tr '\n' ' ' | xargs)
+
+          # Change to atmos directory for component listing
+          cd atmos
+
+          # If no specific stacks detected, use provided stack
+          if [ -z "$STACKS" ]; then
+            STACKS="core-eus-dev"
+          fi
+
+          # Get all components if "*" specified
+          if [ "$COMPONENTS" = "*" ] || [ -z "$COMPONENTS" ]; then
+            echo "🔍 Getting all components for stack: $STACKS"
+            ALL_COMPONENTS=""
+            for stack in $STACKS; do
+              STACK_COMPONENTS=$(atmos list components --stack="$stack" \
+                --format=json | jq -r '.[] | select(.component_type == 
+                "terraform") | .component' | sort | tr '\n' ' ')
+              ALL_COMPONENTS="$ALL_COMPONENTS $STACK_COMPONENTS"
+            done
+            COMPONENTS=$(echo $ALL_COMPONENTS | tr ' ' '\n' | \
+              sort -u | tr '\n' ' ' | xargs)
+          fi
 
           echo "components=$COMPONENTS" >> $GITHUB_OUTPUT
           echo "stacks=$STACKS" >> $GITHUB_OUTPUT
