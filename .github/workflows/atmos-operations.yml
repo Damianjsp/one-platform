@@ -56,14 +56,18 @@ jobs:
           ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
           echo "Installing Atmos version: $ATMOS_VERSION (numeric: $ATMOS_VERSION_NUM)"
           
+          # Create temp directory and download
+          mkdir -p /tmp/atmos-install
+          cd /tmp/atmos-install
+          
           # Construct download URL
           DOWNLOAD_URL="https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION_NUM}_linux_amd64"
           echo "Download URL: $DOWNLOAD_URL"
           
           # Download and install binary directly
           curl -sSfL "$DOWNLOAD_URL" -o atmos
+          chmod +x atmos
           sudo mv atmos /usr/local/bin/
-          chmod +x /usr/local/bin/atmos
           atmos version
 
       - name: Configure Azure credentials
@@ -217,14 +221,18 @@ jobs:
           ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
           echo "Installing Atmos version: $ATMOS_VERSION (numeric: $ATMOS_VERSION_NUM)"
           
+          # Create temp directory and download
+          mkdir -p /tmp/atmos-install
+          cd /tmp/atmos-install
+          
           # Construct download URL
           DOWNLOAD_URL="https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION_NUM}_linux_amd64"
           echo "Download URL: $DOWNLOAD_URL"
           
           # Download and install binary directly
           curl -sSfL "$DOWNLOAD_URL" -o atmos
+          chmod +x atmos
           sudo mv atmos /usr/local/bin/
-          chmod +x /usr/local/bin/atmos
           atmos version
 
       - name: Configure Azure credentials
