@@ -28,8 +28,14 @@ jobs:
 
       - name: Install Atmos
         run: |
-          curl -sSfL https://atmos.tools/install.sh | bash
-          sudo mv ./bin/atmos /usr/local/bin/
+          # Download latest Atmos release directly from GitHub
+          ATMOS_VERSION=$(curl -s https://api.github.com/repos/cloudposse/atmos/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "Installing Atmos version: $ATMOS_VERSION"
+          
+          # Download and install binary directly
+          curl -sSfL "https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION#v}_linux_amd64.tar.gz" | tar -xz
+          sudo mv atmos /usr/local/bin/
+          chmod +x /usr/local/bin/atmos
           atmos version
 
       - name: Configure Azure credentials
