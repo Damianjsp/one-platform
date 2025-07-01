@@ -1,0 +1,290 @@
+---
+name: Atmos Infrastructure Operations
+
+"on":
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+        default: 'plan'
+      component:
+        description: 'Component name (e.g., azure-resource-group) or "*" for all components'
+        required: true
+        type: string
+      stack:
+        description: 'Stack name (e.g., core-eus-dev)'
+        required: true
+        type: string
+
+jobs:
+  plan:
+    name: 📋 Plan - ${{ inputs.component }} in ${{ inputs.stack }}
+    runs-on: ubuntu-latest
+    environment: damian_ent_azure
+    outputs:
+      plan-summary: ${{ steps.plan-summary.outputs.summary }}
+      components-list: ${{ steps.components.outputs.components }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install tabulate
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5"
+
+      - name: Install Atmos
+        run: |
+          curl -sSfL https://atmos.tools/install.sh | bash
+          sudo mv ./bin/atmos /usr/local/bin/
+          atmos version
+
+      - name: Configure Azure credentials
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Initialize Terraform backend
+        run: |
+          az storage account show-connection-string \
+            --name statomicore \
+            --resource-group atmos-rsg-core \
+            --output tsv > /dev/null
+
+      - name: Validate inputs
+        run: |
+          echo "🔍 Validating operation inputs..."
+          echo "Action: ${{ inputs.action }}"
+          echo "Component: ${{ inputs.component }}"
+          echo "Stack: ${{ inputs.stack }}"
+
+          if ! atmos validate stacks; then
+            echo "❌ Stack configuration validation failed"
+            exit 1
+          fi
+
+          if [ "${{ inputs.component }}" != "*" ]; then
+            if ! atmos list components --stack="${{ inputs.stack }}" \
+              --format=json | jq -e '.[] | select(.component ==
+              "${{ inputs.component }}" and .component_type == "terraform")' \
+              > /dev/null; then
+              echo "❌ Component ${{ inputs.component }} not found"
+              exit 1
+            fi
+          fi
+
+      - name: Get components list
+        id: components
+        run: |
+          if [ "${{ inputs.component }}" = "*" ]; then
+            echo "🔍 Getting all components for stack ${{ inputs.stack }}..."
+            COMPONENTS=$(atmos list components --stack="${{ inputs.stack }}" \
+              --format=json | jq -r '.[] | select(.component_type == 
+              "terraform") | .component' | sort)
+            echo "components<<EOF" >> $GITHUB_OUTPUT
+            echo "$COMPONENTS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "Found components:"
+            echo "$COMPONENTS"
+          else
+            echo "components=${{ inputs.component }}" >> $GITHUB_OUTPUT
+            echo "Single component: ${{ inputs.component }}"
+          fi
+
+      - name: Run Terraform Plans
+        id: run-plans
+        run: |
+          echo "📋 Running Terraform plans..."
+          mkdir -p /tmp/plans
+          
+          echo "${{ steps.components.outputs.components }}" | while read -r component; do
+            if [ -n "$component" ]; then
+              echo "📋 Planning component: $component"
+              PLAN_FILE="/tmp/plans/$component.plan"
+              
+              if atmos terraform plan "$component" -s "${{ inputs.stack }}" \
+                -no-color > "$PLAN_FILE" 2>&1; then
+                echo "✅ Plan completed for component: $component"
+              else
+                echo "❌ Plan failed for component: $component"
+                cat "$PLAN_FILE"
+                exit 1
+              fi
+            fi
+          done
+
+      - name: Generate Plan Dashboard
+        id: plan-summary
+        run: |
+          echo "🎨 Generating plan dashboard..."
+          
+          # Create a combined dashboard for all components
+          python3 - << 'EOF'
+          import sys
+          import os
+          import glob
+          from pathlib import Path
+          
+          # Load the dashboard generator
+          exec(open('scripts/parse-terraform-plan.py').read())
+          
+          # Read all plan files
+          component_plans = {}
+          for plan_file in glob.glob('/tmp/plans/*.plan'):
+              component = Path(plan_file).stem
+              with open(plan_file, 'r') as f:
+                  component_plans[component] = f.read()
+          
+          # Generate dashboard
+          if component_plans:
+              dashboard = generate_dashboard(component_plans)
+              
+              # Save to file and output
+              with open('/tmp/plan-dashboard.md', 'w') as f:
+                  f.write(dashboard)
+              
+              # Output for job summary (truncated if too long)
+              if len(dashboard) > 50000:
+                  summary = dashboard[:50000] + "\n\n... (truncated, see artifacts for full dashboard)"
+              else:
+                  summary = dashboard
+              
+              # Write to step summary
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'w') as f:
+                  f.write(summary)
+              
+              print("Dashboard generated successfully!")
+          else:
+              print("No plans found to process")
+          EOF
+
+      - name: Upload Plan Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plans-${{ inputs.stack }}-${{ inputs.component }}
+          path: |
+            /tmp/plans/
+            /tmp/plan-dashboard.md
+          retention-days: 30
+
+  apply-destroy:
+    name: 🚀 ${{ inputs.action }} - ${{ inputs.component }} in ${{ inputs.stack }}
+    runs-on: ubuntu-latest
+    environment: damian_ent_azure
+    needs: plan
+    if: inputs.action != 'plan'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5"
+
+      - name: Install Atmos
+        run: |
+          curl -sSfL https://atmos.tools/install.sh | bash
+          sudo mv ./bin/atmos /usr/local/bin/
+          atmos version
+
+      - name: Configure Azure credentials
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Initialize Terraform backend
+        run: |
+          az storage account show-connection-string \
+            --name statomicore \
+            --resource-group atmos-rsg-core \
+            --output tsv > /dev/null
+
+      - name: Manual Approval Required
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: ${{ github.actor }}
+          minimum-approvals: 1
+          issue-title: "Manual Approval: ${{ inputs.action }} ${{ inputs.component }} in ${{ inputs.stack }}"
+          issue-body: |
+            ## 🚨 Manual Approval Required
+            
+            **Action**: ${{ inputs.action }}
+            **Component**: ${{ inputs.component }}
+            **Stack**: ${{ inputs.stack }}
+            **Triggered by**: @${{ github.actor }}
+            
+            ### 📋 Plan Summary
+            Please review the plan summary from the previous job before approving.
+            
+            **⚠️ Warning**: This action will modify your infrastructure!
+            
+            ### 🔍 How to Review
+            1. Check the plan dashboard in the previous job's summary
+            2. Review the uploaded plan artifacts
+            3. Ensure the changes are expected
+            
+            ### ✅ Approval
+            Comment with `/approve` to proceed or `/deny` to cancel.
+
+      - name: Run Terraform Apply
+        if: inputs.action == 'apply'
+        run: |
+          echo "🚀 Running Terraform apply in ${{ inputs.stack }}..."
+          echo "${{ needs.plan.outputs.components-list }}" | while read -r component; do
+            if [ -n "$component" ]; then
+              echo "🚀 Applying component: $component"
+              if ! atmos terraform apply "$component" \
+                -s "${{ inputs.stack }}" -auto-approve; then
+                echo "❌ Apply failed for component: $component"
+                exit 1
+              fi
+              echo "✅ Apply completed for component: $component"
+            fi
+          done
+
+      - name: Run Terraform Destroy
+        if: inputs.action == 'destroy'
+        run: |
+          echo "🔥 Running Terraform destroy in ${{ inputs.stack }}..."
+          echo "${{ needs.plan.outputs.components-list }}" | tac | while read -r component; do
+            if [ -n "$component" ]; then
+              echo "🔥 Destroying component: $component"
+              if ! atmos terraform destroy "$component" \
+                -s "${{ inputs.stack }}" -auto-approve; then
+                echo "❌ Destroy failed for component: $component"
+                exit 1
+              fi
+              echo "✅ Destroy completed for component: $component"
+            fi
+          done
+
+      - name: Upload Operation Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: >
+            terraform-logs-${{ inputs.action }}-${{ inputs.component }}-${{
+            inputs.stack }}
+          path: |
+            ~/.atmos/logs/
+            /tmp/terraform-*.log
+          retention-days: 30
