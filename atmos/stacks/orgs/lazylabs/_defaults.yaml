@@ -5,6 +5,8 @@ terraform:
       resource_group_name: "atmos-rsg-core"
       storage_account_name: "statomicore"
       container_name: "corestate"
+      # Hierarchical state organization: {stack}/{component}.tfstate
+      key: "{{ .atmos_stack }}/{{ .atmos_component }}.tfstate"
 
   # Global provider configuration
   providers:

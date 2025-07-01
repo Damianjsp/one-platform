@@ -9,6 +9,9 @@ components:
     deploy_run_plan: true
     init_run_reconfigure: true
     auto_generate_backend_file: true
+    # Backend configuration settings
+    backend_config_template_file: "{component}/backend.tf.json"
+    backend_config_template_type: "json"
 
 stacks:
   base_path: stacks
