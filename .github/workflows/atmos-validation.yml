@@ -6,12 +6,10 @@ name: Atmos Component Validation
     branches: [main]
     paths:
       - 'atmos/**'
-      - 'scripts/**'
   push:
     branches: [main]
     paths:
       - 'atmos/**'
-      - 'scripts/**'
 
 jobs:
   validate-components:
@@ -145,8 +143,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: validation-logs
-          path: /tmp/atmos-*.log
+          path: |
+            /tmp/atmos-*.log
+            ~/.atmos/logs/
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Comment PR with validation results
         if: failure() && github.event_name == 'pull_request'
