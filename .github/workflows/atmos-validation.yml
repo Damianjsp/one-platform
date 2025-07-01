@@ -33,7 +33,7 @@ jobs:
           echo "Installing Atmos version: $ATMOS_VERSION"
           
           # Download and install binary directly
-          curl -sSfL "https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION#v}_linux_amd64.tar.gz" | tar -xz
+          curl -sSfL "https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_linux_amd64" -o atmos
           sudo mv atmos /usr/local/bin/
           chmod +x /usr/local/bin/atmos
           atmos version
