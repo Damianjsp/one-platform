@@ -117,9 +117,8 @@ jobs:
             echo "🔍 Getting all components for stack: $STACKS"
             ALL_COMPONENTS=""
             for stack in $STACKS; do
-              STACK_COMPONENTS=$(atmos list components --stack="$stack" \
-                --format=json | jq -r '.[] | select(.component_type == 
-                "terraform") | .component' | sort | tr '\n' ' ')
+              STACK_COMPONENTS=$(atmos list components -s "$stack" | \
+                grep -v "^$" | sort | tr '\n' ' ')
               ALL_COMPONENTS="$ALL_COMPONENTS $STACK_COMPONENTS"
             done
             COMPONENTS=$(echo $ALL_COMPONENTS | tr ' ' '\n' | \

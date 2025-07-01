@@ -98,11 +98,9 @@ jobs:
           fi
 
           if [ "${{ inputs.component }}" != "*" ]; then
-            if ! atmos list components --stack="${{ inputs.stack }}" \
-              --format=json | jq -e '.[] | select(.component ==
-              "${{ inputs.component }}" and .component_type == "terraform")' \
-              > /dev/null; then
-              echo "❌ Component ${{ inputs.component }} not found"
+            if ! atmos list components -s "${{ inputs.stack }}" | \
+              grep -q "^${{ inputs.component }}$"; then
+              echo "❌ Component ${{ inputs.component }} not found in stack ${{ inputs.stack }}"
               exit 1
             fi
           fi
@@ -115,9 +113,7 @@ jobs:
           
           if [ "${{ inputs.component }}" = "*" ]; then
             echo "🔍 Getting all components for stack ${{ inputs.stack }}..."
-            COMPONENTS=$(atmos list components --stack="${{ inputs.stack }}" \
-              --format=json | jq -r '.[] | select(.component_type == 
-              "terraform") | .component' | sort)
+            COMPONENTS=$(atmos list components -s "${{ inputs.stack }}" | grep -v "^$" | sort)
             echo "components<<EOF" >> $GITHUB_OUTPUT
             echo "$COMPONENTS" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
@@ -133,6 +129,7 @@ jobs:
         run: |
           echo "📋 Running Terraform plans..."
           mkdir -p /tmp/plans
+          cd atmos
           
           echo "${{ steps.components.outputs.components }}" | while read -r component; do
             if [ -n "$component" ]; then
@@ -284,6 +281,7 @@ jobs:
       - name: Run Terraform Apply
         if: inputs.action == 'apply'
         run: |
+          cd atmos
           echo "🚀 Running Terraform apply in ${{ inputs.stack }}..."
           echo "${{ needs.plan.outputs.components-list }}" | while read -r component; do
             if [ -n "$component" ]; then
@@ -300,6 +298,7 @@ jobs:
       - name: Run Terraform Destroy
         if: inputs.action == 'destroy'
         run: |
+          cd atmos
           echo "🔥 Running Terraform destroy in ${{ inputs.stack }}..."
           echo "${{ needs.plan.outputs.components-list }}" | tac | while read -r component; do
             if [ -n "$component" ]; then
