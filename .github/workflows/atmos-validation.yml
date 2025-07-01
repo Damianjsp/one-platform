@@ -1,0 +1,199 @@
+---
+name: Atmos Component Validation
+
+"on":
+  pull_request:
+    branches: [main]
+    paths:
+      - 'atmos/**'
+  push:
+    branches: [main]
+    paths:
+      - 'atmos/**'
+
+jobs:
+  validate-components:
+    name: Validate Atmos Components
+    runs-on: ubuntu-latest
+    environment: damian_ent_azure
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5"
+
+      - name: Install Atmos
+        run: |
+          curl -sSfL https://atmos.tools/install.sh | bash
+          sudo mv ./bin/atmos /usr/local/bin/
+          atmos version
+
+      - name: Configure Azure credentials
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Initialize Terraform backend
+        run: |
+          # Configure Terraform backend for state management
+          az storage account show-connection-string \
+            --name statomicore \
+            --resource-group atmos-rsg-core \
+            --output tsv > /dev/null
+
+      - name: Validate stack configuration
+        run: |
+          echo "🔍 Validating Atmos stack configuration..."
+          atmos validate stacks
+
+      - name: Detect changed components
+        id: detect-changes
+        run: |
+          # Get list of changed files in atmos directory
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only \
+              origin/${{ github.base_ref }}...HEAD | \
+              grep '^atmos/' || true)
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | \
+              grep '^atmos/' || true)
+          fi
+
+          echo "Changed files: $CHANGED_FILES"
+
+          # Extract components and stacks from changed files
+          COMPONENTS=""
+          STACKS=""
+
+          for file in $CHANGED_FILES; do
+            if [[ $file =~ atmos/components/terraform/modules/([^/]+)/ ]];
+            then
+              COMPONENT="${BASH_REMATCH[1]}"
+              COMPONENTS="$COMPONENTS $COMPONENT"
+            elif [[ $file =~ atmos/stacks/.*/(.*).yaml$ ]]; then
+              STACK="${BASH_REMATCH[1]}"
+              if [[ ! $STACK =~ ^(mixins|defaults)$ ]]; then
+                STACKS="$STACKS $STACK"
+              fi
+            fi
+          done
+
+          # Remove duplicates and clean up
+          COMPONENTS=$(echo $COMPONENTS | tr ' ' '\n' | \
+            sort -u | tr '\n' ' ' | xargs)
+          STACKS=$(echo $STACKS | tr ' ' '\n' | \
+            sort -u | tr '\n' ' ' | xargs)
+
+          echo "components=$COMPONENTS" >> $GITHUB_OUTPUT
+          echo "stacks=$STACKS" >> $GITHUB_OUTPUT
+
+          echo "Detected components: $COMPONENTS"
+          echo "Detected stacks: $STACKS"
+
+      - name: Validate changed components
+        if: >
+          steps.detect-changes.outputs.components != '' ||
+          steps.detect-changes.outputs.stacks != ''
+        run: |
+          COMPONENTS="${{ steps.detect-changes.outputs.components }}"
+          STACKS="${{ steps.detect-changes.outputs.stacks }}"
+
+          # If no specific stacks detected, use default stack
+          if [ -z "$STACKS" ]; then
+            STACKS="core-eus-dev"
+          fi
+
+          # If no specific components detected, validate all components
+          # in detected stacks
+          if [ -z "$COMPONENTS" ]; then
+            echo "🔍 No components detected, validating stacks: $STACKS"
+            for stack in $STACKS; do
+              echo "📦 Validating all components in stack: $stack"
+              if ! ./scripts/validate-all-stacks.sh $stack; then
+                echo "❌ Validation failed for stack: $stack"
+                exit 1
+              fi
+            done
+          else
+            echo "🔍 Validating specific components: $COMPONENTS"
+            for component in $COMPONENTS; do
+              for stack in $STACKS; do
+                echo "📦 Validating $component in $stack"
+                if ! ./scripts/validate-component.sh "$component" "$stack";
+                then
+                  echo "❌ Validation failed for $component in $stack"
+                  exit 1
+                fi
+              done
+            done
+          fi
+
+      - name: Run comprehensive validation on main branch
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "🚀 Running comprehensive validation on main branch"
+          ./scripts/validate-all-stacks.sh
+
+      - name: Upload validation logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-logs
+          path: |
+            /tmp/atmos-*.log
+            ~/.atmos/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Comment PR with validation results
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues
+              .listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Atmos Component Validation Failed')
+            );
+
+            const body = `## ❌ Atmos Component Validation Failed
+
+            The Atmos component validation has failed for this PR.
+            Please check the [workflow logs](https://github.com/${
+              context.repo.owner}/${context.repo.repo}/actions/runs/${
+              context.runId}) for details.
+
+            Common issues:
+            - Component configuration errors
+            - Missing required variables
+            - Terraform syntax errors
+            - Stack inheritance issues
+
+            Please fix the issues and push your changes to re-trigger
+            validation.`;
+
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
