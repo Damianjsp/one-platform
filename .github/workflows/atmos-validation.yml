@@ -30,10 +30,11 @@ jobs:
         run: |
           # Download latest Atmos release directly from GitHub
           ATMOS_VERSION=$(curl -s https://api.github.com/repos/cloudposse/atmos/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
           echo "Installing Atmos version: $ATMOS_VERSION"
           
           # Download and install binary directly
-          curl -sSfL "https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_linux_amd64" -o atmos
+          curl -sSfL "https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION_NUM}_linux_amd64" -o atmos
           sudo mv atmos /usr/local/bin/
           chmod +x /usr/local/bin/atmos
           atmos version
