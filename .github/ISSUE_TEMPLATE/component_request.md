@@ -21,39 +21,6 @@ assignees: ''
 - [ ] **Naming Convention**: Follow established naming patterns
 - [ ] **Tagging**: Consistent resource tagging
 
-## Use Cases
-Describe the primary use cases for this component:
-
-1. **Development Environment**:
-   - [Describe dev environment requirements]
-
-2. **Production Environment**:
-   - [Describe prod environment requirements]
-
-3. **Security Requirements**:
-   - [Describe security considerations]
-
-## Configuration Example
-Provide an example of how this component would be configured:
-
-```yaml
-components:
-  terraform:
-    azure-[service-name]:
-      vars:
-        name: "[service-name]"
-        # Additional configuration options
-        
-    # Example with private endpoint
-    azure-private-endpoint-[service]:
-      metadata:
-        component: azure-private-endpoint
-      vars:
-        name: "[service]"
-        private_connection_resource_id: "${components.terraform.azure-[service-name].outputs.[resource-id]}"
-        subresource_names: ["[subresource]"]
-```
-
 ## Dependencies
 This component will depend on:
 - [ ] azure-resource-group
@@ -80,15 +47,6 @@ If private endpoints are supported:
 - [ ] Component README with usage examples
 - [ ] Validation tests passing
 - [ ] Private endpoint compatibility verified
-
-## Additional Context
-Add any other context, requirements, or considerations for this component:
-
-- Security requirements
-- Compliance considerations  
-- Integration patterns
-- Performance requirements
-- Cost considerations
 
 ## References
 - [Azure Service Documentation]
