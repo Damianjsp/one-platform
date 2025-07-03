@@ -200,8 +200,11 @@ jobs:
           import glob
           from pathlib import Path
           
-          # Load the dashboard generator
-          exec(open('scripts/parse-terraform-plan.py').read())
+          # Add the scripts directory to the Python path
+          sys.path.insert(0, 'scripts')
+          
+          # Import the dashboard generator module
+          import parse_terraform_plan
           
           # Read all plan files
           component_plans = {}
@@ -212,7 +215,7 @@ jobs:
           
           # Generate dashboard
           if component_plans:
-              dashboard = generate_dashboard(component_plans)
+              dashboard = parse_terraform_plan.generate_dashboard(component_plans)
               
               # Save to file and output
               with open('/tmp/plan-dashboard.md', 'w') as f:
