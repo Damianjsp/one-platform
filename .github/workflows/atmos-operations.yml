@@ -56,6 +56,17 @@ jobs:
           ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
           echo "Installing Atmos version: $ATMOS_VERSION (numeric: $ATMOS_VERSION_NUM)"
           
+          # Debug: Check if variables are properly set
+          if [ -z "$ATMOS_VERSION" ]; then
+            echo "❌ Failed to get Atmos version from GitHub API"
+            exit 1
+          fi
+          
+          if [ -z "$ATMOS_VERSION_NUM" ]; then
+            echo "❌ Failed to extract numeric version"
+            exit 1
+          fi
+          
           # Create temp directory and download
           mkdir -p /tmp/atmos-install
           cd /tmp/atmos-install
@@ -223,6 +234,17 @@ jobs:
           ATMOS_VERSION=$(curl -s https://api.github.com/repos/cloudposse/atmos/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
           ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
           echo "Installing Atmos version: $ATMOS_VERSION (numeric: $ATMOS_VERSION_NUM)"
+          
+          # Debug: Check if variables are properly set
+          if [ -z "$ATMOS_VERSION" ]; then
+            echo "❌ Failed to get Atmos version from GitHub API"
+            exit 1
+          fi
+          
+          if [ -z "$ATMOS_VERSION_NUM" ]; then
+            echo "❌ Failed to extract numeric version"
+            exit 1
+          fi
           
           # Create temp directory and download
           mkdir -p /tmp/atmos-install
