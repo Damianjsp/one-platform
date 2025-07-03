@@ -146,11 +146,50 @@ jobs:
           if [ "${{ inputs.component }}" = "*" ]; then
             echo "🔍 Getting all components for stack ${{ inputs.stack }}..."
             COMPONENTS=$(atmos list components -s "${{ inputs.stack }}" | grep -v "^$" | sort)
+            
+            # Define dependency order for proper deployment
+            ORDERED_COMPONENTS=""
+            
+            # Add base infrastructure first
+            for comp in azure-resource-group azure-vnet azure-subnet azure-nsg; do
+              if echo "$COMPONENTS" | grep -q "^$comp$"; then
+                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
+              fi
+            done
+            
+            # Add storage components
+            for comp in azure-storage-account-general azure-storage-account-private azure-storage-account-datalake; do
+              if echo "$COMPONENTS" | grep -q "^$comp$"; then
+                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
+              fi
+            done
+            
+            # Add Key Vault components (depend on resource group)
+            for comp in azure-keyvault-dev azure-keyvault-secure; do
+              if echo "$COMPONENTS" | grep -q "^$comp$"; then
+                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
+              fi
+            done
+            
+            # Add private endpoints last (depend on other components)
+            for comp in azure-private-endpoint-storage-blob azure-private-endpoint-datalake-blob azure-private-endpoint-datalake-dfs azure-private-endpoint-keyvault; do
+              if echo "$COMPONENTS" | grep -q "^$comp$"; then
+                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
+              fi
+            done
+            
+            # Add any remaining components not in the predefined order
+            for comp in $COMPONENTS; do
+              if ! echo "$ORDERED_COMPONENTS" | grep -q "$comp"; then
+                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
+              fi
+            done
+            
             echo "components<<EOF" >> $GITHUB_OUTPUT
-            echo "$COMPONENTS" >> $GITHUB_OUTPUT
+            echo "$ORDERED_COMPONENTS" | tr ' ' '\n' | grep -v "^$" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
-            echo "Found components:"
-            echo "$COMPONENTS"
+            echo "Components in dependency order:"
+            echo "$ORDERED_COMPONENTS" | tr ' ' '\n' | grep -v "^$"
           else
             echo "components=${{ inputs.component }}" >> $GITHUB_OUTPUT
             echo "Single component: ${{ inputs.component }}"
