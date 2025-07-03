@@ -156,38 +156,6 @@ jobs:
             echo "Single component: ${{ inputs.component }}"
           fi
 
-      - name: Check and Deploy Dependencies
-        id: deploy-deps
-        run: |
-          echo "🔍 Checking component dependencies..."
-          cd atmos
-          
-          # For single component planning, check if dependencies need to be deployed
-          if [ "${{ inputs.component }}" != "*" ]; then
-            component="${{ inputs.component }}"
-            echo "🔍 Checking dependencies for component: $component"
-            
-            # Get dependencies for this component
-            DEPS=$(atmos describe dependents azure-resource-group -s "${{ inputs.stack }}" 2>/dev/null | \
-              jq -r --arg comp "$component" '.[] | select(.component == $comp) | .component' 2>/dev/null || echo "")
-            
-            # If this component depends on azure-resource-group, ensure it's deployed
-            if [[ "$component" =~ ^(azure-keyvault|azure-vnet|azure-subnet|azure-nsg|azure-storage-account|azure-private-endpoint) ]]; then
-              echo "🔍 Component $component depends on azure-resource-group, checking if deployed..."
-              
-              if ! atmos terraform output azure-resource-group -s "${{ inputs.stack }}" >/dev/null 2>&1; then
-                echo "📦 azure-resource-group not deployed, deploying dependency first..."
-                if ! atmos terraform apply azure-resource-group -s "${{ inputs.stack }}" -auto-approve; then
-                  echo "❌ Failed to deploy azure-resource-group dependency"
-                  exit 1
-                fi
-                echo "✅ azure-resource-group deployed successfully"
-              else
-                echo "✅ azure-resource-group already deployed"
-              fi
-            fi
-          fi
-
       - name: Run Terraform Plans
         id: run-plans
         timeout-minutes: 15

@@ -36,8 +36,8 @@ components:
         name: "network"
         address_space: ["10.0.0.0/16"]
         dns_servers: ["168.63.129.16"]
-        # Reference the resource group component's output dynamically
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        # Reference the resource group component's output dynamically with default value
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
 
     azure-subnet:
       settings:
@@ -49,9 +49,9 @@ components:
       vars:
         name: "web"
         address_prefixes: ["10.0.1.0/24"]
-        # Reference the resource group and vnet components dynamically
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
-        virtual_network_name: "{{ (atmos.Component \"azure-vnet\" .stack).outputs.vnet_name }}"
+        # Reference the resource group and vnet components dynamically with default values
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
+        virtual_network_name: !terraform.output 'azure-vnet ".vnet_name // ""lalbnetworkeus"""'
         # Enable private endpoint network policies
         private_endpoint_network_policies: "Enabled"
 
@@ -65,10 +65,10 @@ components:
       vars:
         name: "web"
         location: "eastus"
-        # Reference the resource group component dynamically
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        # Reference the resource group component dynamically with default values
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
         # Associate NSG with the subnet
-        subnet_ids: ["{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"]
+        subnet_ids: [!terraform.output 'azure-subnet ".subnet_id // ""mock-subnet-id"""']
 
     # Multiple Private Endpoint Examples - Different Services with Different Configurations
     
@@ -170,7 +170,7 @@ components:
       vars:
         name: "general"
         location: "eastus"
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
         # Disable private endpoints for now
         create_private_endpoints: false
 
@@ -185,7 +185,7 @@ components:
       vars:
         name: "private"
         location: "eastus"
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
         # Disable integrated private endpoints due to module compatibility
         create_private_endpoints: false
 
@@ -201,7 +201,7 @@ components:
         name: "datalake"
         attributes: ["adls"]
         location: "eastus"
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
         
         # Data Lake Gen2 configuration
         account_kind: "StorageV2"
@@ -232,9 +232,9 @@ components:
         name: "stgblob"
         attributes: ["blob"]
         location: "eastus"
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
-        subnet_id: "{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"
-        private_connection_resource_id: "{{ (atmos.Component \"azure-storage-account-private\" .stack).outputs.storage_account_id }}"
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
+        subnet_id: !terraform.output 'azure-subnet ".subnet_id // ""mock-subnet-id"""'
+        private_connection_resource_id: !terraform.output 'azure-storage-account-private ".storage_account_id // ""mock-storage-account-id"""'
         subresource_names: ["blob"]
         is_manual_connection: false
 
@@ -254,9 +254,9 @@ components:
         name: "dlblob"
         attributes: ["blob"]
         location: "eastus"
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
-        subnet_id: "{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"
-        private_connection_resource_id: "{{ (atmos.Component \"azure-storage-account-datalake\" .stack).outputs.storage_account_id }}"
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
+        subnet_id: !terraform.output 'azure-subnet ".subnet_id // ""mock-subnet-id"""'
+        private_connection_resource_id: !terraform.output 'azure-storage-account-datalake ".storage_account_id // ""mock-datalake-storage-id"""'
         subresource_names: ["blob"]
         is_manual_connection: false
 
@@ -276,9 +276,9 @@ components:
         name: "dldfs"
         attributes: ["dfs"]
         location: "eastus"
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
-        subnet_id: "{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"
-        private_connection_resource_id: "{{ (atmos.Component \"azure-storage-account-datalake\" .stack).outputs.storage_account_id }}"
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
+        subnet_id: !terraform.output 'azure-subnet ".subnet_id // ""mock-subnet-id"""'
+        private_connection_resource_id: !terraform.output 'azure-storage-account-datalake ".storage_account_id // ""mock-datalake-storage-id"""'
         subresource_names: ["dfs"]
         is_manual_connection: false
 
@@ -297,7 +297,7 @@ components:
       vars:
         name: "secrets"
         location: "eastus"
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
         
         # Disable current user access to avoid Azure AD permission issues
         add_current_user_access: false
@@ -337,7 +337,7 @@ components:
         name: "secure"
         attributes: ["private"]
         location: "eastus"
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
         
         # Disable current user access to avoid Azure AD permission issues
         add_current_user_access: false
@@ -356,7 +356,8 @@ components:
           default_action: "Deny"
           bypass: "AzureServices"
           # Note: Subnet would need service endpoint for Microsoft.KeyVault to use subnet_ids
-          # virtual_network_subnet_ids: ["{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"]
+          # Enable this when the subnet has Microsoft.KeyVault service endpoint configured
+          # virtual_network_subnet_ids: [!terraform.output 'azure-subnet ".subnet_id // ""mock-subnet-id"""']
         
         # Application-specific secrets
         secrets:
@@ -383,9 +384,9 @@ components:
         name: "kvsecure"
         attributes: ["vault"]
         location: "eastus"
-        resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
-        subnet_id: "{{ (atmos.Component \"azure-subnet\" .stack).outputs.subnet_id }}"
-        private_connection_resource_id: "{{ (atmos.Component \"azure-keyvault-secure\" .stack).outputs.key_vault_id }}"
+        resource_group_name: !terraform.output 'azure-resource-group ".resource_group_name // ""lalb-services-eus"""'
+        subnet_id: !terraform.output 'azure-subnet ".subnet_id // ""mock-subnet-id"""'
+        private_connection_resource_id: !terraform.output 'azure-keyvault-secure ".key_vault_id // ""mock-keyvault-id"""'
         subresource_names: ["vault"]
         is_manual_connection: false
 
