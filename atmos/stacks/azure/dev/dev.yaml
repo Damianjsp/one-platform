@@ -28,6 +28,10 @@ components:
         attributes: ["shared"]
 
     azure-vnet:
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
       vars:
         name: "network"
         address_space: ["10.0.0.0/16"]
@@ -36,6 +40,12 @@ components:
         resource_group_name: "{{ (atmos.Component \"azure-resource-group\" .stack).outputs.resource_group_name }}"
 
     azure-subnet:
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-vnet"
       vars:
         name: "web"
         address_prefixes: ["10.0.1.0/24"]
@@ -46,6 +56,12 @@ components:
         private_endpoint_network_policies: "Enabled"
 
     azure-nsg:
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-subnet"
       vars:
         name: "web"
         location: "eastus"
@@ -147,6 +163,10 @@ components:
     azure-storage-account-general:
       metadata:
         component: azure-storage-account
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
       vars:
         name: "general"
         location: "eastus"
@@ -158,6 +178,10 @@ components:
     azure-storage-account-private:
       metadata:
         component: azure-storage-account
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
       vars:
         name: "private"
         location: "eastus"
@@ -169,6 +193,10 @@ components:
     azure-storage-account-datalake:
       metadata:
         component: azure-storage-account
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
       vars:
         name: "datalake"
         attributes: ["adls"]
@@ -192,6 +220,14 @@ components:
     azure-private-endpoint-storage-blob:
       metadata:
         component: azure-private-endpoint
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-subnet"
+          3:
+            component: "azure-storage-account-private"
       vars:
         name: "stgblob"
         attributes: ["blob"]
@@ -206,6 +242,14 @@ components:
     azure-private-endpoint-datalake-blob:
       metadata:
         component: azure-private-endpoint
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-subnet"
+          3:
+            component: "azure-storage-account-datalake"
       vars:
         name: "dlblob"
         attributes: ["blob"]
@@ -220,6 +264,14 @@ components:
     azure-private-endpoint-datalake-dfs:
       metadata:
         component: azure-private-endpoint
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-subnet"
+          3:
+            component: "azure-storage-account-datalake"
       vars:
         name: "dldfs"
         attributes: ["dfs"]
@@ -238,6 +290,10 @@ components:
     azure-keyvault-dev:
       metadata:
         component: azure-keyvault
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
       vars:
         name: "secrets"
         location: "eastus"
@@ -273,6 +329,10 @@ components:
     azure-keyvault-secure:
       metadata:
         component: azure-keyvault
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
       vars:
         name: "secure"
         attributes: ["private"]
@@ -311,6 +371,14 @@ components:
     azure-private-endpoint-keyvault:
       metadata:
         component: azure-private-endpoint
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-subnet"
+          3:
+            component: "azure-keyvault-secure"
       vars:
         name: "kvsecure"
         attributes: ["vault"]

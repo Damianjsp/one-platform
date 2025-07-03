@@ -146,50 +146,11 @@ jobs:
           if [ "${{ inputs.component }}" = "*" ]; then
             echo "🔍 Getting all components for stack ${{ inputs.stack }}..."
             COMPONENTS=$(atmos list components -s "${{ inputs.stack }}" | grep -v "^$" | sort)
-            
-            # Define dependency order for proper deployment
-            ORDERED_COMPONENTS=""
-            
-            # Add base infrastructure first
-            for comp in azure-resource-group azure-vnet azure-subnet azure-nsg; do
-              if echo "$COMPONENTS" | grep -q "^$comp$"; then
-                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
-              fi
-            done
-            
-            # Add storage components
-            for comp in azure-storage-account-general azure-storage-account-private azure-storage-account-datalake; do
-              if echo "$COMPONENTS" | grep -q "^$comp$"; then
-                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
-              fi
-            done
-            
-            # Add Key Vault components (depend on resource group)
-            for comp in azure-keyvault-dev azure-keyvault-secure; do
-              if echo "$COMPONENTS" | grep -q "^$comp$"; then
-                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
-              fi
-            done
-            
-            # Add private endpoints last (depend on other components)
-            for comp in azure-private-endpoint-storage-blob azure-private-endpoint-datalake-blob azure-private-endpoint-datalake-dfs azure-private-endpoint-keyvault; do
-              if echo "$COMPONENTS" | grep -q "^$comp$"; then
-                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
-              fi
-            done
-            
-            # Add any remaining components not in the predefined order
-            for comp in $COMPONENTS; do
-              if ! echo "$ORDERED_COMPONENTS" | grep -q "$comp"; then
-                ORDERED_COMPONENTS="$ORDERED_COMPONENTS $comp"
-              fi
-            done
-            
             echo "components<<EOF" >> $GITHUB_OUTPUT
-            echo "$ORDERED_COMPONENTS" | tr ' ' '\n' | grep -v "^$" >> $GITHUB_OUTPUT
+            echo "$COMPONENTS" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
-            echo "Components in dependency order:"
-            echo "$ORDERED_COMPONENTS" | tr ' ' '\n' | grep -v "^$"
+            echo "Found components:"
+            echo "$COMPONENTS"
           else
             echo "components=${{ inputs.component }}" >> $GITHUB_OUTPUT
             echo "Single component: ${{ inputs.component }}"
@@ -395,34 +356,57 @@ jobs:
         run: |
           cd atmos
           echo "🚀 Running Terraform apply in ${{ inputs.stack }}..."
-          echo "${{ needs.plan.outputs.components-list }}" | while read -r component; do
-            if [ -n "$component" ]; then
-              echo "🚀 Applying component: $component"
-              if ! atmos terraform apply "$component" \
-                -s "${{ inputs.stack }}" -auto-approve; then
-                echo "❌ Apply failed for component: $component"
-                exit 1
-              fi
-              echo "✅ Apply completed for component: $component"
+          
+          if [ "${{ inputs.component }}" = "*" ]; then
+            echo "🚀 Deploying all components with dependency handling..."
+            # Use atmos terraform deploy for proper dependency order
+            if ! atmos terraform deploy --all -s "${{ inputs.stack }}" --deploy-run-init; then
+              echo "❌ Deploy failed for stack: ${{ inputs.stack }}"
+              exit 1
             fi
-          done
+            echo "✅ Deploy completed for all components in stack: ${{ inputs.stack }}"
+          else
+            echo "🚀 Applying single component: ${{ inputs.component }}"
+            if ! atmos terraform apply "${{ inputs.component }}" \
+              -s "${{ inputs.stack }}" -auto-approve; then
+              echo "❌ Apply failed for component: ${{ inputs.component }}"
+              exit 1
+            fi
+            echo "✅ Apply completed for component: ${{ inputs.component }}"
+          fi
 
       - name: Run Terraform Destroy
         if: inputs.action == 'destroy'
         run: |
           cd atmos
           echo "🔥 Running Terraform destroy in ${{ inputs.stack }}..."
-          echo "${{ needs.plan.outputs.components-list }}" | tac | while read -r component; do
-            if [ -n "$component" ]; then
-              echo "🔥 Destroying component: $component"
-              if ! atmos terraform destroy "$component" \
-                -s "${{ inputs.stack }}" -auto-approve; then
-                echo "❌ Destroy failed for component: $component"
-                exit 1
+          
+          if [ "${{ inputs.component }}" = "*" ]; then
+            echo "🔥 Destroying all components in reverse dependency order..."
+            # For destroy, we need to reverse the dependency order
+            # Destroy private endpoints first, then dependent services, then base infrastructure
+            DESTROY_ORDER="azure-private-endpoint-keyvault azure-private-endpoint-datalake-dfs azure-private-endpoint-datalake-blob azure-private-endpoint-storage-blob azure-keyvault-secure azure-keyvault-dev azure-storage-account-datalake azure-storage-account-private azure-storage-account-general azure-nsg azure-subnet azure-vnet azure-resource-group"
+            
+            for component in $DESTROY_ORDER; do
+              if echo "${{ needs.plan.outputs.components-list }}" | grep -q "$component"; then
+                echo "🔥 Destroying component: $component"
+                if ! atmos terraform destroy "$component" \
+                  -s "${{ inputs.stack }}" -auto-approve; then
+                  echo "❌ Destroy failed for component: $component"
+                  exit 1
+                fi
+                echo "✅ Destroy completed for component: $component"
               fi
-              echo "✅ Destroy completed for component: $component"
+            done
+          else
+            echo "🔥 Destroying single component: ${{ inputs.component }}"
+            if ! atmos terraform destroy "${{ inputs.component }}" \
+              -s "${{ inputs.stack }}" -auto-approve; then
+              echo "❌ Destroy failed for component: ${{ inputs.component }}"
+              exit 1
             fi
-          done
+            echo "✅ Destroy completed for component: ${{ inputs.component }}"
+          fi
 
       - name: Upload Operation Logs
         if: always()
