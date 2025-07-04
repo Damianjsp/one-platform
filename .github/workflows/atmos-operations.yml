@@ -14,7 +14,7 @@ name: Atmos Infrastructure Operations
           - destroy
         default: 'plan'
       component:
-        description: 'Component name (e.g., azure-resource-group) or "*" for all components'
+        description: 'Component name (e.g., azure-resource-group), "all" for all components, or "affected" for dependency-aware planning'
         required: true
         type: string
       stack:
@@ -129,7 +129,7 @@ jobs:
             exit 1
           fi
 
-          if [ "${{ inputs.component }}" != "*" ]; then
+          if [ "${{ inputs.component }}" != "all" ] && [ "${{ inputs.component }}" != "affected" ]; then
             if ! atmos list components -s "${{ inputs.stack }}" | \
               grep -q "^${{ inputs.component }}$"; then
               echo "❌ Component ${{ inputs.component }} not found in stack ${{ inputs.stack }}"
@@ -143,7 +143,7 @@ jobs:
           # Change to atmos directory
           cd atmos
           
-          if [ "${{ inputs.component }}" = "*" ]; then
+          if [ "${{ inputs.component }}" = "all" ]; then
             echo "🔍 Getting all components for stack ${{ inputs.stack }}..."
             COMPONENTS=$(atmos list components -s "${{ inputs.stack }}" | grep -v "^$" | sort)
             echo "components<<EOF" >> $GITHUB_OUTPUT
@@ -151,6 +151,10 @@ jobs:
             echo "EOF" >> $GITHUB_OUTPUT
             echo "Found components:"
             echo "$COMPONENTS"
+          elif [ "${{ inputs.component }}" = "affected" ]; then
+            echo "🔍 Using dependency-aware planning for affected components..."
+            echo "components=affected" >> $GITHUB_OUTPUT
+            echo "Will use atmos terraform plan --affected for dependency-aware planning"
           else
             echo "components=${{ inputs.component }}" >> $GITHUB_OUTPUT
             echo "Single component: ${{ inputs.component }}"
@@ -164,29 +168,51 @@ jobs:
           mkdir -p /tmp/plans
           cd atmos
           
-          echo "${{ steps.components.outputs.components }}" | while read -r component; do
-            if [ -n "$component" ]; then
-              echo "📋 Planning component: $component (timeout: 10 minutes)"
-              PLAN_FILE="/tmp/plans/$component.plan"
-              
-              # Set timeout for individual component planning
-              timeout 600 atmos terraform plan "$component" -s "${{ inputs.stack }}" \
-                -no-color -input=false > "$PLAN_FILE" 2>&1 && PLAN_STATUS=$? || PLAN_STATUS=$?
-              
-              if [ $PLAN_STATUS -eq 0 ]; then
-                echo "✅ Plan completed for component: $component"
-              elif [ $PLAN_STATUS -eq 124 ]; then
-                echo "⏰ Plan timed out for component: $component (10 minutes)"
-                echo "Component $component timed out after 10 minutes" >> "$PLAN_FILE"
-                exit 1
-              else
-                echo "❌ Plan failed for component: $component"
-                echo "Last 50 lines of output:"
-                tail -50 "$PLAN_FILE"
-                exit 1
-              fi
+          if [ "${{ steps.components.outputs.components }}" = "affected" ]; then
+            echo "📋 Planning affected components in dependency order..."
+            PLAN_FILE="/tmp/plans/affected.plan"
+            
+            # Use Atmos dependency-aware planning
+            timeout 900 atmos terraform plan --affected -s "${{ inputs.stack }}" \
+              -no-color -input=false > "$PLAN_FILE" 2>&1 && PLAN_STATUS=$? || PLAN_STATUS=$?
+            
+            if [ $PLAN_STATUS -eq 0 ]; then
+              echo "✅ Affected components planned successfully"
+            elif [ $PLAN_STATUS -eq 124 ]; then
+              echo "⏰ Affected planning timed out (15 minutes)"
+              echo "Affected components planning timed out after 15 minutes" >> "$PLAN_FILE"
+              exit 1
+            else
+              echo "❌ Affected planning failed"
+              echo "Last 50 lines of output:"
+              tail -50 "$PLAN_FILE"
+              exit 1
             fi
-          done
+          else
+            echo "${{ steps.components.outputs.components }}" | while read -r component; do
+              if [ -n "$component" ]; then
+                echo "📋 Planning component: $component (timeout: 10 minutes)"
+                PLAN_FILE="/tmp/plans/$component.plan"
+                
+                # Set timeout for individual component planning
+                timeout 600 atmos terraform plan "$component" -s "${{ inputs.stack }}" \
+                  -no-color -input=false > "$PLAN_FILE" 2>&1 && PLAN_STATUS=$? || PLAN_STATUS=$?
+                
+                if [ $PLAN_STATUS -eq 0 ]; then
+                  echo "✅ Plan completed for component: $component"
+                elif [ $PLAN_STATUS -eq 124 ]; then
+                  echo "⏰ Plan timed out for component: $component (10 minutes)"
+                  echo "Component $component timed out after 10 minutes" >> "$PLAN_FILE"
+                  exit 1
+                else
+                  echo "❌ Plan failed for component: $component"
+                  echo "Last 50 lines of output:"
+                  tail -50 "$PLAN_FILE"
+                  exit 1
+                fi
+              fi
+            done
+          fi
 
       - name: Generate Plan Dashboard
         id: plan-summary
@@ -360,7 +386,7 @@ jobs:
           cd atmos
           echo "🚀 Running Terraform apply in ${{ inputs.stack }}..."
           
-          if [ "${{ inputs.component }}" = "*" ]; then
+          if [ "${{ inputs.component }}" = "all" ]; then
             echo "🚀 Deploying all components with dependency handling..."
             # Use atmos terraform deploy for proper dependency order
             if ! atmos terraform deploy --all -s "${{ inputs.stack }}" --deploy-run-init; then
@@ -368,6 +394,13 @@ jobs:
               exit 1
             fi
             echo "✅ Deploy completed for all components in stack: ${{ inputs.stack }}"
+          elif [ "${{ inputs.component }}" = "affected" ]; then
+            echo "🚀 Deploying affected components in dependency order..."
+            if ! atmos terraform deploy --affected -s "${{ inputs.stack }}" --deploy-run-init; then
+              echo "❌ Deploy failed for affected components in stack: ${{ inputs.stack }}"
+              exit 1
+            fi
+            echo "✅ Deploy completed for affected components in stack: ${{ inputs.stack }}"
           else
             echo "🚀 Applying single component: ${{ inputs.component }}"
             if ! atmos terraform apply "${{ inputs.component }}" \
@@ -384,7 +417,7 @@ jobs:
           cd atmos
           echo "🔥 Running Terraform destroy in ${{ inputs.stack }}..."
           
-          if [ "${{ inputs.component }}" = "*" ]; then
+          if [ "${{ inputs.component }}" = "all" ] || [ "${{ inputs.component }}" = "affected" ]; then
             echo "🔥 Destroying all components in reverse dependency order..."
             # For destroy, we need to reverse the dependency order
             # Destroy private endpoints first, then dependent services, then base infrastructure
