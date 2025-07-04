@@ -1,0 +1,21 @@
+# Azure App Service Plan Production Environment Mixin
+
+components:
+  terraform:
+    azure-app-service-plan:
+      vars:
+        # Production-grade configuration
+        os_type: "Linux"
+        sku_name: "P1v3"  # Premium v3 for production workloads
+        worker_count: 2
+        per_site_scaling_enabled: true
+        zone_balancing_enabled: true
+        
+        # Production tags
+        tags:
+          Environment: "production"
+          Purpose: "production-workloads"
+          CostCenter: "operations"
+          BackupRequired: "true"
+          MonitoringRequired: "true"
+          HighAvailability: "true"

@@ -14,6 +14,8 @@ import:
   - catalog/azure-storage-account/mixins/dev
   - catalog/azure-keyvault/defaults
   - catalog/azure-keyvault/mixins/dev
+  - catalog/azure-app-service-plan/defaults
+  - catalog/azure-app-service-plan/mixins/dev
 
 vars:
   environment: "eus"
@@ -391,6 +393,45 @@ components:
         private_connection_resource_id: !terraform.output azure-keyvault-secure ".key_vault_id // \"mock-keyvault-id\""
         subresource_names: ["vault"]
         is_manual_connection: false
+
+    # =============================================================================
+    # AZURE APP SERVICE PLAN EXAMPLES
+    # =============================================================================
+
+    # Example 1: Basic App Service Plan for Web Applications
+    azure-app-service-plan-web:
+      metadata:
+        component: azure-app-service-plan
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+      vars:
+        name: "webapp"
+        location: "eastus"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        os_type: "Linux"
+        sku_name: "B1"
+        worker_count: 1
+
+    # Example 2: Premium App Service Plan for Production Workloads
+    azure-app-service-plan-api:
+      metadata:
+        component: azure-app-service-plan
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+      vars:
+        name: "api"
+        attributes: ["premium"]
+        location: "eastus"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        os_type: "Linux"
+        sku_name: "P1v3"
+        worker_count: 2
+        per_site_scaling_enabled: true
+        zone_balancing_enabled: true
 
     # Example 2: Data Lake Gen2 Storage Account
     # azure-storage-account-datalake:
