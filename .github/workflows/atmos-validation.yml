@@ -24,24 +24,54 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "~1.5"
+          terraform_version: "~1.9"
 
       - name: Install Atmos
         run: |
           # Download latest Atmos release directly from GitHub
           ATMOS_VERSION=$(curl -s https://api.github.com/repos/cloudposse/atmos/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-          echo "Installing Atmos version: $ATMOS_VERSION"
+          ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
+          echo "Installing Atmos version: $ATMOS_VERSION (numeric: $ATMOS_VERSION_NUM)"
+          
+          # Create temp directory and download
+          mkdir -p /tmp/atmos-install
+          cd /tmp/atmos-install
+          
+          # Construct download URL
+          DOWNLOAD_URL="https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION_NUM}_linux_amd64"
+          echo "Download URL: $DOWNLOAD_URL"
           
           # Download and install binary directly
-          curl -sSfL "https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION#v}_linux_amd64.tar.gz" | tar -xz
+          curl -sSfL "$DOWNLOAD_URL" -o atmos
+          chmod +x atmos
           sudo mv atmos /usr/local/bin/
-          chmod +x /usr/local/bin/atmos
           atmos version
 
       - name: Configure Azure credentials
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Set Terraform ARM environment variables
+        run: |
+          # Extract credentials from AZURE_CREDENTIALS secret and set ARM_* variables
+          echo "Setting ARM environment variables for Terraform..."
+          CLIENT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientId)
+          CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret)
+          SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
+          TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
+          
+          # Mask the sensitive values in logs
+          echo "::add-mask::$CLIENT_ID"
+          echo "::add-mask::$CLIENT_SECRET"
+          echo "::add-mask::$SUBSCRIPTION_ID"
+          echo "::add-mask::$TENANT_ID"
+          
+          # Set environment variables
+          echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
 
       - name: Initialize Terraform backend
         run: |
@@ -54,6 +84,7 @@ jobs:
       - name: Validate stack configuration
         run: |
           echo "🔍 Validating Atmos stack configuration..."
+          cd atmos
           atmos validate stacks
 
       - name: Detect changed components
@@ -93,6 +124,27 @@ jobs:
             sort -u | tr '\n' ' ' | xargs)
           STACKS=$(echo $STACKS | tr ' ' '\n' | \
             sort -u | tr '\n' ' ' | xargs)
+
+          # Change to atmos directory for component listing
+          cd atmos
+
+          # If no specific stacks detected, use provided stack
+          if [ -z "$STACKS" ]; then
+            STACKS="core-eus-dev"
+          fi
+
+          # Get all components if "*" specified
+          if [ "$COMPONENTS" = "*" ] || [ -z "$COMPONENTS" ]; then
+            echo "🔍 Getting all components for stack: $STACKS"
+            ALL_COMPONENTS=""
+            for stack in $STACKS; do
+              STACK_COMPONENTS=$(atmos list components -s "$stack" | \
+                grep -v "^$" | sort | tr '\n' ' ')
+              ALL_COMPONENTS="$ALL_COMPONENTS $STACK_COMPONENTS"
+            done
+            COMPONENTS=$(echo $ALL_COMPONENTS | tr ' ' '\n' | \
+              sort -u | tr '\n' ' ' | xargs)
+          fi
 
           echo "components=$COMPONENTS" >> $GITHUB_OUTPUT
           echo "stacks=$STACKS" >> $GITHUB_OUTPUT

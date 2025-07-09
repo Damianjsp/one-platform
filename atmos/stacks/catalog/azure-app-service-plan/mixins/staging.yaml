@@ -1,0 +1,20 @@
+# Azure App Service Plan Staging Environment Mixin
+
+components:
+  terraform:
+    azure-app-service-plan:
+      vars:
+        # Staging configuration - balance between cost and performance
+        os_type: "Linux"
+        sku_name: "S1"  # Standard tier for staging
+        worker_count: 1
+        per_site_scaling_enabled: true
+        zone_balancing_enabled: false
+        
+        # Staging tags
+        tags:
+          Environment: "staging"
+          Purpose: "staging-workloads"
+          CostCenter: "engineering"
+          AutoShutdown: "false"
+          MonitoringRequired: "true"

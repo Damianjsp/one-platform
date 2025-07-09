@@ -1,0 +1,33 @@
+# Azure App Service Plan Component Default Configuration
+
+components:
+  terraform:
+    azure-app-service-plan:
+      metadata:
+        type: abstract
+        component: azure-app-service-plan
+      
+      vars:
+        enabled: true
+        
+        # App Service Plan Configuration
+        os_type: "Linux"
+        sku_name: "B1"
+        worker_count: 1
+        per_site_scaling_enabled: false
+        zone_balancing_enabled: false
+        
+        # Label Configuration (no delimiters for Azure naming compatibility)
+        label_order:
+          - namespace
+          - environment
+          - stage
+          - name
+        delimiter: ""
+        regex_replace_chars: "/[^a-zA-Z0-9-]/"
+        
+        # Default tags
+        tags:
+          Component: "azure-app-service-plan"
+          ManagedBy: "Atmos"
+          Terraform: "true"

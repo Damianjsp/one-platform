@@ -1,0 +1,19 @@
+# Azure App Service Plan Development Environment Mixin
+
+components:
+  terraform:
+    azure-app-service-plan:
+      vars:
+        # Development-friendly configuration
+        os_type: "Linux"
+        sku_name: "B1"  # Basic tier for cost optimization
+        worker_count: 1
+        per_site_scaling_enabled: false
+        zone_balancing_enabled: false
+        
+        # Development tags
+        tags:
+          Environment: "development"
+          Purpose: "development-workloads"
+          CostCenter: "engineering"
+          AutoShutdown: "true"
