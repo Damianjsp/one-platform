@@ -1,0 +1,52 @@
+# Azure Function App Component Default Configuration
+
+components:
+  terraform:
+    azure-function-app:
+      metadata:
+        type: abstract
+        component: azure-function-app
+      
+      vars:
+        enabled: true
+        
+        # Function App Configuration
+        os_type: "Linux"
+        functions_worker_runtime: "node"
+        website_run_from_package: "1"
+        function_app_enabled: true
+        always_on: false
+        
+        # Security settings
+        https_only: true
+        public_network_access_enabled: true
+        client_certificate_enabled: false
+        client_certificate_mode: "Optional"
+        minimum_tls_version: "1.2"
+        ftps_state: "Disabled"
+        
+        # Function runtime settings
+        functions_extension_version: "~4"
+        content_share_force_disabled: false
+        use_32_bit_worker: false
+        http2_enabled: false
+        websockets_enabled: false
+        
+        # Default app settings
+        app_settings: {}
+        connection_strings: {}
+        
+        # Label Configuration (no delimiters for Azure naming compatibility)
+        label_order:
+          - namespace
+          - environment
+          - stage
+          - name
+        delimiter: ""
+        regex_replace_chars: "/[^a-zA-Z0-9-]/"
+        
+        # Default tags
+        tags:
+          Component: "azure-function-app"
+          ManagedBy: "Atmos"
+          Terraform: "true"

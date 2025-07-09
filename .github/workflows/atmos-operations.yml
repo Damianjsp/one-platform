@@ -95,6 +95,11 @@ jobs:
           SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
           TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
           
+          # Set backend configuration variables
+          echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
+          
           # Mask the sensitive values in logs
           echo "::add-mask::$CLIENT_ID"
           echo "::add-mask::$CLIENT_SECRET"
@@ -332,6 +337,11 @@ jobs:
           CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret)
           SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
           TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
+          
+          # Set backend configuration variables
+          echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
           
           # Mask the sensitive values in logs
           echo "::add-mask::$CLIENT_ID"

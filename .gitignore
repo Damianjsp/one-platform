@@ -731,4 +731,16 @@ $RECYCLE.BIN/
 .claude
 CLAUDE.md
 
+# Environment-specific configuration files (contain sensitive data)
+**/secrets.yaml
+**/local.yaml
+**/*_secrets.yaml
+**/*_local.yaml
+.env.local
+.env.*.local
+
+# Backup files that might contain sensitive data
+**/backup_*.yaml
+**/backup_*.yml
+
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,terraform,macos,vim,linux,aspnetcore,textmate,sublimetext,python,go,homebrew,windows,ssh,cmake,azurefunctions,ansible,ansibletower,git

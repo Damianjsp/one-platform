@@ -1,0 +1,32 @@
+# Azure Function App Development Environment Mixin
+
+components:
+  terraform:
+    azure-function-app:
+      vars:
+        # Development-friendly configuration
+        os_type: "Linux"
+        functions_worker_runtime: "node"
+        always_on: false  # Cost optimization for development
+        
+        # Development runtime settings
+        application_stack:
+          node_version: "18"
+        
+        # Development CORS settings (more permissive)
+        cors:
+          allowed_origins: ["*"]
+          support_credentials: false
+        
+        # Development app settings
+        app_settings:
+          ENVIRONMENT: "development"
+          NODE_ENV: "development"
+          WEBSITE_NODE_DEFAULT_VERSION: "~18"
+        
+        # Development tags
+        tags:
+          Environment: "development"
+          Purpose: "development-workloads"
+          CostCenter: "engineering"
+          AutoShutdown: "true"

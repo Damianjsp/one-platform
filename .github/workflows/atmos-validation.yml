@@ -73,12 +73,18 @@ jobs:
           echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
           echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
 
+      - name: Setup Backend Configuration
+        run: |
+          echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
+          
       - name: Initialize Terraform backend
         run: |
           # Configure Terraform backend for state management
           az storage account show-connection-string \
-            --name statomicore \
-            --resource-group atmos-rsg-core \
+            --name $ATMOS_BACKEND_STORAGE_ACCOUNT \
+            --resource-group $ATMOS_BACKEND_RESOURCE_GROUP \
             --output tsv > /dev/null
 
       - name: Validate stack configuration

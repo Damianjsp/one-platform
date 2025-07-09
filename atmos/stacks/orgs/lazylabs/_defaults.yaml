@@ -21,3 +21,7 @@ vars:
     - namespace
     - name
     - environment
+  
+  # Azure Configuration - REPLACE WITH YOUR VALUES
+  # subscription_id: "YOUR_AZURE_SUBSCRIPTION_ID"
+  # service_principal_object_id: "YOUR_SERVICE_PRINCIPAL_OBJECT_ID"

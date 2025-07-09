@@ -1,0 +1,45 @@
+# Azure Function App Production Environment Mixin
+
+components:
+  terraform:
+    azure-function-app:
+      vars:
+        # Production-grade configuration
+        os_type: "Linux"
+        functions_worker_runtime: "node"
+        always_on: true  # Production workloads need always-on
+        
+        # Production runtime settings
+        application_stack:
+          node_version: "18"
+        
+        # Production CORS settings (more restrictive)
+        cors:
+          allowed_origins: ["https://yourdomain.com", "https://www.yourdomain.com"]
+          support_credentials: true
+        
+        # Production app settings
+        app_settings:
+          ENVIRONMENT: "production"
+          NODE_ENV: "production"
+          WEBSITE_NODE_DEFAULT_VERSION: "~18"
+          WEBSITE_RUN_FROM_PACKAGE: "1"
+        
+        # Production authentication settings
+        auth_settings:
+          enabled: true
+          unauthenticated_client_action: "RedirectToLoginPage"
+          token_store_enabled: true
+        
+        # Production identity
+        identity:
+          type: "SystemAssigned"
+        
+        # Production tags
+        tags:
+          Environment: "production"
+          Purpose: "production-workloads"
+          CostCenter: "operations"
+          BackupRequired: "true"
+          MonitoringRequired: "true"
+          HighAvailability: "true"

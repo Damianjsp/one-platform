@@ -13,6 +13,20 @@ One Platform is a comprehensive infrastructure-as-code solution designed to mana
 
 This repository provides a centralized platform for managing infrastructure deployments, leveraging [Atmos](https://atmos.tools/) as an orchestration layer to manage Terraform components and stacks across environments. It provides a scalable and maintainable approach to infrastructure management using component-based architecture.
 
+## 🚀 Quick Start
+
+⚠️ **Important**: Before deploying, you must configure your Azure credentials and update placeholder values.
+
+1. **Prerequisites**: Azure CLI, Terraform >= 1.9.0, Atmos CLI
+2. **Setup**: Follow the [SETUP.md](SETUP.md) guide for detailed configuration instructions
+3. **Deploy**: Run Atmos commands to deploy infrastructure
+
+**Essential Setup Steps:**
+- Create Azure Service Principal
+- Configure backend storage account
+- Update placeholder values in configuration files
+- Set environment variables for authentication
+
 ## ✨ Key Features
 
 - **🏗️ Component-Based Architecture**: Reusable Terraform modules organized by functionality
@@ -281,9 +295,9 @@ This project uses [Semantic Versioning](https://semver.org/) with automated tagg
 
 Terraform state is managed using Azure Storage:
 
-- **Resource Group**: `atmos-rsg-core`
-- **Storage Account**: `statomicore`
-- **Container**: `corestate`
+- **Resource Group**: `${ATMOS_BACKEND_RESOURCE_GROUP}` (configured in organization defaults)
+- **Storage Account**: `${ATMOS_BACKEND_STORAGE_ACCOUNT}` (configured in organization defaults)
+- **Container**: `${ATMOS_BACKEND_CONTAINER}` (configured in organization defaults)
 
 ## 📊 Status
 

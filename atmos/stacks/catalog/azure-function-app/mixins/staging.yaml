@@ -1,0 +1,44 @@
+# Azure Function App Staging Environment Mixin
+
+components:
+  terraform:
+    azure-function-app:
+      vars:
+        # Staging configuration - balance between dev and prod
+        os_type: "Linux"
+        functions_worker_runtime: "node"
+        always_on: true  # Staging should mirror production
+        
+        # Staging runtime settings
+        application_stack:
+          node_version: "18"
+        
+        # Staging CORS settings (semi-restrictive)
+        cors:
+          allowed_origins: ["https://staging.yourdomain.com", "https://test.yourdomain.com"]
+          support_credentials: true
+        
+        # Staging app settings
+        app_settings:
+          ENVIRONMENT: "staging"
+          NODE_ENV: "staging"
+          WEBSITE_NODE_DEFAULT_VERSION: "~18"
+          WEBSITE_RUN_FROM_PACKAGE: "1"
+        
+        # Staging authentication settings (like production)
+        auth_settings:
+          enabled: true
+          unauthenticated_client_action: "RedirectToLoginPage"
+          token_store_enabled: true
+        
+        # Staging identity
+        identity:
+          type: "SystemAssigned"
+        
+        # Staging tags
+        tags:
+          Environment: "staging"
+          Purpose: "staging-workloads"
+          CostCenter: "engineering"
+          AutoShutdown: "false"
+          MonitoringRequired: "true"
