@@ -5,8 +5,8 @@
 
 set -e
 
-RESOURCE_GROUP="atmos-rsg-core"
-STORAGE_ACCOUNT="statomicore"
+RESOURCE_GROUP="${ATMOS_BACKEND_RESOURCE_GROUP:-atmos-rsg-core}"
+STORAGE_ACCOUNT="${ATMOS_BACKEND_STORAGE_ACCOUNT:-statomicore}"
 CONTAINER="corestate"
 STACK_NAME="core-eus-dev"
 

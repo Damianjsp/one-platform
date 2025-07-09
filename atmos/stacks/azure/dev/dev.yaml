@@ -16,12 +16,14 @@ import:
   - catalog/azure-keyvault/mixins/dev
   - catalog/azure-app-service-plan/defaults
   - catalog/azure-app-service-plan/mixins/dev
+  - catalog/azure-function-app/defaults
+  - catalog/azure-function-app/mixins/dev
 
 vars:
   environment: "eus"
   stage: "dev"
-  location: "East US"
-  subscription_id: "fa626e61-2056-42b0-847a-1aad6fa3b5dd"
+  location: "eastus"
+  # subscription_id inherited from org defaults
 
 components:
   terraform:
@@ -309,7 +311,7 @@ components:
         # Add explicit access policy for the current service principal
         access_policies:
           current-sp:
-            object_id: "5fd82de6-3a8c-4798-8285-be43acda34b0"
+            object_id: "YOUR_SERVICE_PRINCIPAL_OBJECT_ID"
             key_permissions: ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "Decrypt", "Encrypt", "UnwrapKey", "WrapKey", "Verify", "Sign", "Purge"]
             secret_permissions: ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
             certificate_permissions: ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "ManageContacts", "ManageIssuers", "GetIssuers", "ListIssuers", "SetIssuers", "DeleteIssuers", "Purge"]
@@ -349,7 +351,7 @@ components:
         # Add explicit access policy for the current service principal
         access_policies:
           current-sp:
-            object_id: "5fd82de6-3a8c-4798-8285-be43acda34b0"
+            object_id: "YOUR_SERVICE_PRINCIPAL_OBJECT_ID"
             key_permissions: ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "Decrypt", "Encrypt", "UnwrapKey", "WrapKey", "Verify", "Sign", "Purge"]
             secret_permissions: ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
             certificate_permissions: ["Get", "List", "Update", "Create", "Import", "Delete", "Recover", "Backup", "Restore", "ManageContacts", "ManageIssuers", "GetIssuers", "ListIssuers", "SetIssuers", "DeleteIssuers", "Purge"]
@@ -432,6 +434,63 @@ components:
         worker_count: 2
         per_site_scaling_enabled: true
         zone_balancing_enabled: true
+
+    # =============================================================================
+    # AZURE FUNCTION APP EXAMPLES
+    # =============================================================================
+
+    # Example 1: Node.js Function App for API Services
+    azure-function-app-api:
+      metadata:
+        component: azure-function-app
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-app-service-plan-web"
+          3:
+            component: "azure-storage-account-general"
+      vars:
+        name: "api"
+        location: "eastus"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        service_plan_id: !terraform.output azure-app-service-plan-web ".app_service_plan_id"
+        storage_account_name: !terraform.output azure-storage-account-general ".storage_account_name"
+        storage_account_access_key: !terraform.output azure-storage-account-general ".storage_account_primary_access_key"
+        os_type: "Linux"
+        functions_worker_runtime: "node"
+        application_stack:
+          node_version: "18"
+
+    # Example 2: Python Function App for Data Processing
+    azure-function-app-processor:
+      metadata:
+        component: azure-function-app
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-app-service-plan-api"
+          3:
+            component: "azure-storage-account-general"
+      vars:
+        name: "processor"
+        attributes: ["python"]
+        location: "eastus"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        service_plan_id: !terraform.output azure-app-service-plan-api ".app_service_plan_id"
+        storage_account_name: !terraform.output azure-storage-account-general ".storage_account_name"
+        storage_account_access_key: !terraform.output azure-storage-account-general ".storage_account_primary_access_key"
+        os_type: "Linux"
+        functions_worker_runtime: "python"
+        application_stack:
+          python_version: "3.11"
+        always_on: true
+        app_settings:
+          PYTHON_VERSION: "3.11"
+          ENABLE_ORYX_BUILD: "true"
 
     # Example 2: Data Lake Gen2 Storage Account
     # azure-storage-account-datalake:
