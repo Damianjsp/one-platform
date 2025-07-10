@@ -37,6 +37,7 @@ output "function_app_identity" {
 output "function_app_custom_domain_verification_id" {
   description = "The identifier used by App Service to perform domain ownership verification via DNS TXT record"
   value       = var.enabled ? (var.os_type == "Linux" ? azurerm_linux_function_app.this[0].custom_domain_verification_id : azurerm_windows_function_app.this[0].custom_domain_verification_id) : null
+  sensitive   = true
 }
 
 output "function_app_kind" {

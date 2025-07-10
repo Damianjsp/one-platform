@@ -26,6 +26,17 @@ jobs:
         with:
           terraform_version: "~1.9"
 
+      - name: Setup Python and install Checkov
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Checkov
+        run: |
+          python -m pip install --upgrade pip
+          pip install checkov
+          checkov --version
+
       - name: Install Atmos
         run: |
           # Download latest Atmos release directly from GitHub
@@ -92,6 +103,12 @@ jobs:
           echo "🔍 Validating Atmos stack configuration..."
           cd atmos
           atmos validate stacks
+
+      - name: Run Checkov security scan
+        run: |
+          echo "🔒 Running Checkov security scan..."
+          ./scripts/checkov-scan.sh --all --no-fail
+        continue-on-error: true
 
       - name: Detect changed components
         id: detect-changes
@@ -192,6 +209,10 @@ jobs:
                   echo "❌ Validation failed for $component in $stack"
                   exit 1
                 fi
+                
+                # Run Checkov security scan on specific component
+                echo "🔒 Running Checkov security scan on $component"
+                ./scripts/checkov-scan.sh "$component" "$stack" --no-fail || echo "⚠️  Security issues found in $component"
               done
             done
           fi
@@ -210,6 +231,7 @@ jobs:
           path: |
             /tmp/atmos-*.log
             ~/.atmos/logs/
+            security/reports/
           retention-days: 7
           if-no-files-found: ignore
 
@@ -242,6 +264,7 @@ jobs:
             - Missing required variables
             - Terraform syntax errors
             - Stack inheritance issues
+            - Security policy violations (Checkov)
 
             Please fix the issues and push your changes to re-trigger
             validation.`;
