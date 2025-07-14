@@ -42,12 +42,12 @@ resource "azurerm_linux_function_app" "this" {
     always_on                              = var.always_on
     application_insights_connection_string = var.application_insights_connection_string
     application_insights_key               = var.application_insights_key
-    ftps_state                            = var.ftps_state
-    http2_enabled                         = var.http2_enabled
-    minimum_tls_version                   = var.minimum_tls_version
-    use_32_bit_worker                     = var.use_32_bit_worker
-    websockets_enabled                    = var.websockets_enabled
-    
+    ftps_state                             = var.ftps_state
+    http2_enabled                          = var.http2_enabled
+    minimum_tls_version                    = var.minimum_tls_version
+    use_32_bit_worker                      = var.use_32_bit_worker
+    websockets_enabled                     = var.websockets_enabled
+
     # Application stack
     dynamic "application_stack" {
       for_each = var.application_stack != null ? [var.application_stack] : []
@@ -66,8 +66,8 @@ resource "azurerm_linux_function_app" "this" {
     dynamic "cors" {
       for_each = var.cors != null ? [var.cors] : []
       content {
-        allowed_origins                     = cors.value.allowed_origins
-        support_credentials                 = cors.value.support_credentials
+        allowed_origins     = cors.value.allowed_origins
+        support_credentials = cors.value.support_credentials
       }
     }
   }
@@ -77,12 +77,12 @@ resource "azurerm_linux_function_app" "this" {
     for_each = var.auth_settings != null ? [var.auth_settings] : []
     content {
       enabled                        = auth_settings.value.enabled
-      default_provider              = auth_settings.value.default_provider
+      default_provider               = auth_settings.value.default_provider
       allowed_external_redirect_urls = auth_settings.value.allowed_external_redirect_urls
-      runtime_version               = auth_settings.value.runtime_version
-      token_refresh_extension_hours = auth_settings.value.token_refresh_extension_hours
-      token_store_enabled           = auth_settings.value.token_store_enabled
-      unauthenticated_client_action = auth_settings.value.unauthenticated_client_action
+      runtime_version                = auth_settings.value.runtime_version
+      token_refresh_extension_hours  = auth_settings.value.token_refresh_extension_hours
+      token_store_enabled            = auth_settings.value.token_store_enabled
+      unauthenticated_client_action  = auth_settings.value.unauthenticated_client_action
     }
   }
 
@@ -112,7 +112,7 @@ resource "azurerm_linux_function_app" "this" {
   enabled                       = var.function_app_enabled
   content_share_force_disabled  = var.content_share_force_disabled
   functions_extension_version   = var.functions_extension_version
-  zip_deploy_file              = var.zip_deploy_file
+  zip_deploy_file               = var.zip_deploy_file
 
   tags = module.label.tags
 
@@ -146,12 +146,12 @@ resource "azurerm_windows_function_app" "this" {
     always_on                              = var.always_on
     application_insights_connection_string = var.application_insights_connection_string
     application_insights_key               = var.application_insights_key
-    ftps_state                            = var.ftps_state
-    http2_enabled                         = var.http2_enabled
-    minimum_tls_version                   = var.minimum_tls_version
-    use_32_bit_worker                     = var.use_32_bit_worker
-    websockets_enabled                    = var.websockets_enabled
-    
+    ftps_state                             = var.ftps_state
+    http2_enabled                          = var.http2_enabled
+    minimum_tls_version                    = var.minimum_tls_version
+    use_32_bit_worker                      = var.use_32_bit_worker
+    websockets_enabled                     = var.websockets_enabled
+
     # Application stack
     dynamic "application_stack" {
       for_each = var.application_stack != null ? [var.application_stack] : []
@@ -169,8 +169,8 @@ resource "azurerm_windows_function_app" "this" {
     dynamic "cors" {
       for_each = var.cors != null ? [var.cors] : []
       content {
-        allowed_origins                     = cors.value.allowed_origins
-        support_credentials                 = cors.value.support_credentials
+        allowed_origins     = cors.value.allowed_origins
+        support_credentials = cors.value.support_credentials
       }
     }
   }
@@ -180,12 +180,12 @@ resource "azurerm_windows_function_app" "this" {
     for_each = var.auth_settings != null ? [var.auth_settings] : []
     content {
       enabled                        = auth_settings.value.enabled
-      default_provider              = auth_settings.value.default_provider
+      default_provider               = auth_settings.value.default_provider
       allowed_external_redirect_urls = auth_settings.value.allowed_external_redirect_urls
-      runtime_version               = auth_settings.value.runtime_version
-      token_refresh_extension_hours = auth_settings.value.token_refresh_extension_hours
-      token_store_enabled           = auth_settings.value.token_store_enabled
-      unauthenticated_client_action = auth_settings.value.unauthenticated_client_action
+      runtime_version                = auth_settings.value.runtime_version
+      token_refresh_extension_hours  = auth_settings.value.token_refresh_extension_hours
+      token_store_enabled            = auth_settings.value.token_store_enabled
+      unauthenticated_client_action  = auth_settings.value.unauthenticated_client_action
     }
   }
 
@@ -215,7 +215,7 @@ resource "azurerm_windows_function_app" "this" {
   enabled                       = var.function_app_enabled
   content_share_force_disabled  = var.content_share_force_disabled
   functions_extension_version   = var.functions_extension_version
-  zip_deploy_file              = var.zip_deploy_file
+  zip_deploy_file               = var.zip_deploy_file
 
   tags = module.label.tags
 

@@ -120,8 +120,8 @@ variable "diagnostic_settings" {
   type = object({
     log_analytics_workspace_id = optional(string)
     storage_account_id         = optional(string)
-    log_categories            = optional(list(string), ["AuditEvent", "AzurePolicyEvaluationDetails"])
-    metric_categories         = optional(list(string), ["AllMetrics"])
+    log_categories             = optional(list(string), ["AuditEvent", "AzurePolicyEvaluationDetails"])
+    metric_categories          = optional(list(string), ["AllMetrics"])
   })
   default = null
 }
@@ -166,8 +166,8 @@ variable "keys" {
 variable "certificates" {
   description = "Map of certificates to create in the Key Vault"
   type = map(object({
-    certificate_contents  = optional(string)
-    certificate_password  = optional(string)
+    certificate_contents = optional(string)
+    certificate_password = optional(string)
     certificate_policy = object({
       issuer_parameters = object({
         name = string

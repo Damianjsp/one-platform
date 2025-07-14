@@ -25,30 +25,30 @@ output "security_rules" {
       name                         = rule.name
       priority                     = rule.priority
       direction                    = rule.direction
-      access                      = rule.access
-      protocol                    = rule.protocol
-      source_port_range           = rule.source_port_range
-      destination_port_range      = rule.destination_port_range
-      source_port_ranges          = rule.source_port_ranges
-      destination_port_ranges     = rule.destination_port_ranges
-      source_address_prefix       = rule.source_address_prefix
-      destination_address_prefix  = rule.destination_address_prefix
-      source_address_prefixes     = rule.source_address_prefixes
+      access                       = rule.access
+      protocol                     = rule.protocol
+      source_port_range            = rule.source_port_range
+      destination_port_range       = rule.destination_port_range
+      source_port_ranges           = rule.source_port_ranges
+      destination_port_ranges      = rule.destination_port_ranges
+      source_address_prefix        = rule.source_address_prefix
+      destination_address_prefix   = rule.destination_address_prefix
+      source_address_prefixes      = rule.source_address_prefixes
       destination_address_prefixes = rule.destination_address_prefixes
     }],
     [for rule in azurerm_network_security_rule.custom_rules : {
       name                         = rule.name
       priority                     = rule.priority
       direction                    = rule.direction
-      access                      = rule.access
-      protocol                    = rule.protocol
-      source_port_range           = rule.source_port_range
-      destination_port_range      = rule.destination_port_range
-      source_port_ranges          = rule.source_port_ranges
-      destination_port_ranges     = rule.destination_port_ranges
-      source_address_prefix       = rule.source_address_prefix
-      destination_address_prefix  = rule.destination_address_prefix
-      source_address_prefixes     = rule.source_address_prefixes
+      access                       = rule.access
+      protocol                     = rule.protocol
+      source_port_range            = rule.source_port_range
+      destination_port_range       = rule.destination_port_range
+      source_port_ranges           = rule.source_port_ranges
+      destination_port_ranges      = rule.destination_port_ranges
+      source_address_prefix        = rule.source_address_prefix
+      destination_address_prefix   = rule.destination_address_prefix
+      source_address_prefixes      = rule.source_address_prefixes
       destination_address_prefixes = rule.destination_address_prefixes
     }]
   ) : []

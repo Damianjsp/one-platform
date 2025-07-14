@@ -69,9 +69,9 @@ output "secrets" {
   description = "Map of created secrets and their metadata"
   value = var.enabled ? {
     for k, v in azurerm_key_vault_secret.secrets : k => {
-      id           = v.id
-      name         = v.name
-      version      = v.version
+      id             = v.id
+      name           = v.name
+      version        = v.version
       versionless_id = v.versionless_id
     }
   } : {}
@@ -81,13 +81,13 @@ output "keys" {
   description = "Map of created keys and their metadata"
   value = var.enabled ? {
     for k, v in azurerm_key_vault_key.keys : k => {
-      id           = v.id
-      name         = v.name
-      version      = v.version
+      id             = v.id
+      name           = v.name
+      version        = v.version
       versionless_id = v.versionless_id
-      key_type     = v.key_type
-      key_size     = v.key_size
-      curve        = v.curve
+      key_type       = v.key_type
+      key_size       = v.key_size
+      curve          = v.curve
     }
   } : {}
 }
@@ -96,13 +96,13 @@ output "certificates" {
   description = "Map of created certificates and their metadata"
   value = var.enabled ? {
     for k, v in azurerm_key_vault_certificate.certificates : k => {
-      id                = v.id
-      name              = v.name
-      version           = v.version
-      versionless_id    = v.versionless_id
-      secret_id         = v.secret_id
-      certificate_data  = v.certificate_data
-      thumbprint        = v.thumbprint
+      id               = v.id
+      name             = v.name
+      version          = v.version
+      versionless_id   = v.versionless_id
+      secret_id        = v.secret_id
+      certificate_data = v.certificate_data
+      thumbprint       = v.thumbprint
     }
   } : {}
 }

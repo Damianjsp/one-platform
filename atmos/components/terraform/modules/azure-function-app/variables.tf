@@ -190,12 +190,12 @@ variable "auth_settings" {
   description = "Configuration block for authentication settings"
   type = object({
     enabled                        = bool
-    default_provider              = optional(string)
+    default_provider               = optional(string)
     allowed_external_redirect_urls = optional(list(string))
-    runtime_version               = optional(string)
-    token_refresh_extension_hours = optional(number)
-    token_store_enabled           = optional(bool)
-    unauthenticated_client_action = optional(string)
+    runtime_version                = optional(string)
+    token_refresh_extension_hours  = optional(number)
+    token_store_enabled            = optional(bool)
+    unauthenticated_client_action  = optional(string)
   })
   default = null
 }
