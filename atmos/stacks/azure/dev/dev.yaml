@@ -74,7 +74,7 @@ components:
         resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
         # Associate NSG with the subnet
         subnet_ids: 
-          - !terraform.output azure-subnet .subnet_id
+          - !terraform.output azure-subnet ".subnet_id"
 
     # Multiple Private Endpoint Examples - Different Services with Different Configurations
     
@@ -239,8 +239,8 @@ components:
         attributes: ["blob"]
         location: "eastus"
         resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
-        subnet_id: !terraform.output azure-subnet .subnet_id
-        private_connection_resource_id: !terraform.output azure-storage-account-private .storage_account_id
+        subnet_id: !terraform.output azure-subnet ".subnet_id"
+        private_connection_resource_id: !terraform.output azure-storage-account-private ".storage_account_id"
         subresource_names: ["blob"]
         is_manual_connection: false
 
@@ -261,8 +261,8 @@ components:
         attributes: ["blob"]
         location: "eastus"
         resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
-        subnet_id: !terraform.output azure-subnet .subnet_id
-        private_connection_resource_id: !terraform.output azure-storage-account-datalake .storage_account_id
+        subnet_id: !terraform.output azure-subnet ".subnet_id"
+        private_connection_resource_id: !terraform.output azure-storage-account-datalake ".storage_account_id"
         subresource_names: ["blob"]
         is_manual_connection: false
 
@@ -283,8 +283,8 @@ components:
         attributes: ["dfs"]
         location: "eastus"
         resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
-        subnet_id: !terraform.output azure-subnet .subnet_id
-        private_connection_resource_id: !terraform.output azure-storage-account-datalake .storage_account_id
+        subnet_id: !terraform.output azure-subnet ".subnet_id"
+        private_connection_resource_id: !terraform.output azure-storage-account-datalake ".storage_account_id"
         subresource_names: ["dfs"]
         is_manual_connection: false
 
@@ -391,8 +391,8 @@ components:
         attributes: ["vault"]
         location: "eastus"
         resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
-        subnet_id: !terraform.output azure-subnet .subnet_id
-        private_connection_resource_id: !terraform.output azure-keyvault-secure .key_vault_id
+        subnet_id: !terraform.output azure-subnet ".subnet_id"
+        private_connection_resource_id: !terraform.output azure-keyvault-secure ".key_vault_id"
         subresource_names: ["vault"]
         is_manual_connection: false
 

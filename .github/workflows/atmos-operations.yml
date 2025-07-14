@@ -14,9 +14,10 @@ name: Atmos Infrastructure Operations
           - destroy
         default: 'plan'
       component:
-        description: 'Component name (e.g., azure-resource-group), "all" for all components, or "affected" for dependency-aware planning'
+        description: 'Component name (e.g., azure-resource-group), "all" for all components, or "affected" for dependency-aware planning (recommended)'
         required: true
         type: string
+        default: 'affected'
       stack:
         description: 'Stack name (e.g., core-eus-dev)'
         required: true
@@ -157,11 +158,15 @@ jobs:
               echo "Abstract components cannot be provisioned directly. Use concrete component instances instead."
               echo "Available concrete instances in stack ${{ inputs.stack }}:"
               atmos list components -s "${{ inputs.stack }}" | grep "${{ inputs.component }}-" || echo "No concrete instances found"
+              echo ""
+              echo "💡 Tip: Use 'affected' for dependency-aware planning that handles terraform output references properly"
               exit 1
             fi
 
             echo "components=${{ inputs.component }}" >> $GITHUB_OUTPUT
             echo "Single component: ${{ inputs.component }}"
+            echo "⚠️  Warning: Individual component planning may fail if terraform output references are not resolved"
+            echo "💡 Consider using 'affected' for dependency-aware planning instead"
           fi
 
       - name: Run Terraform Plans
