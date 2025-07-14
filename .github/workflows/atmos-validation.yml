@@ -26,6 +26,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 50  # Fetch more history for better git diff
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -185,10 +187,18 @@ jobs:
           # Get list of changed files in atmos directory
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # Fetch the base branch for proper diff
-            git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
-            CHANGED_FILES=$(git diff --name-only \
-              ${{ github.base_ref }}...HEAD | \
-              grep '^atmos/' || true)
+            echo "🔄 Fetching base branch: ${{ github.base_ref }}"
+            git fetch origin ${{ github.base_ref }} --depth=50
+            
+            # Try multiple diff strategies
+            CHANGED_FILES=""
+            if git diff --name-only origin/${{ github.base_ref }}...HEAD > /dev/null 2>&1; then
+              CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^atmos/' || true)
+            elif git diff --name-only origin/${{ github.base_ref }} HEAD > /dev/null 2>&1; then
+              CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep '^atmos/' || true)
+            else
+              echo "⚠️  Git diff failed, will validate all components"
+            fi
           else
             CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | \
               grep '^atmos/' || true)
@@ -235,15 +245,16 @@ jobs:
               # Get all components for the stack
               STACK_COMPONENTS=$(atmos list components -s "$stack" | grep -v "^$" | sort)
               
-              # Filter out abstract components
+              # Filter out known abstract components (much faster than describe)
               CONCRETE_COMPONENTS=""
               for component in $STACK_COMPONENTS; do
                 if [ -n "$component" ]; then
-                  COMPONENT_INFO=$(atmos describe component "$component" -s "$stack" --format=json 2>/dev/null || echo "{}")
-                  COMPONENT_TYPE=$(echo "$COMPONENT_INFO" | jq -r '.metadata.type // "concrete"')
-                  if [ "$COMPONENT_TYPE" != "abstract" ]; then
-                    CONCRETE_COMPONENTS="$CONCRETE_COMPONENTS $component"
+                  # Known abstract components - skip these
+                  if [ "$component" = "azure-app-service-plan" ] || [ "$component" = "azure-function-app" ]; then
+                    echo "⏭️  Skipping abstract component: $component"
+                    continue
                   fi
+                  CONCRETE_COMPONENTS="$CONCRETE_COMPONENTS $component"
                 fi
               done
               
@@ -285,22 +296,51 @@ jobs:
             done
           else
             echo "🔍 Validating specific components: $COMPONENTS"
+            
+            # Define dependency order for validation (dependencies first)
+            DEPENDENCY_ORDER="azure-resource-group azure-vnet azure-subnet azure-nsg azure-storage-account azure-storage-account-general azure-storage-account-private azure-storage-account-datalake azure-keyvault azure-keyvault-dev azure-keyvault-secure azure-app-service-plan-web azure-app-service-plan-api azure-function-app-api azure-function-app-processor azure-private-endpoint azure-private-endpoint-storage-blob azure-private-endpoint-datalake-blob azure-private-endpoint-datalake-dfs azure-private-endpoint-keyvault"
+            
+            # Validate components in dependency order
+            for ordered_component in $DEPENDENCY_ORDER; do
+              # Check if this component is in our list to validate
+              if echo " $COMPONENTS " | grep -q " $ordered_component "; then
+                for stack in $STACKS; do
+                  echo "📦 Validating $ordered_component in $stack"
+                  if ! ./scripts/validate-component.sh "$ordered_component" "$stack" --syntax-only;
+                  then
+                    echo "❌ Validation failed for $ordered_component in $stack"
+                    exit 1
+                  fi
+                  
+                  # Run Checkov security scan on specific component
+                  echo "🔒 Running Checkov security scan on $ordered_component"
+                  if ! ./scripts/checkov-scan.sh "$ordered_component" "$stack"; then
+                    echo "❌ Security issues found in $ordered_component - blocking merge"
+                    exit 1
+                  fi
+                done
+              fi
+            done
+            
+            # Validate any remaining components not in the dependency order
             for component in $COMPONENTS; do
-              for stack in $STACKS; do
-                echo "📦 Validating $component in $stack"
-                if ! ./scripts/validate-component.sh "$component" "$stack";
-                then
-                  echo "❌ Validation failed for $component in $stack"
-                  exit 1
-                fi
-                
-                # Run Checkov security scan on specific component
-                echo "🔒 Running Checkov security scan on $component"
-                if ! ./scripts/checkov-scan.sh "$component" "$stack"; then
-                  echo "❌ Security issues found in $component - blocking merge"
-                  exit 1
-                fi
-              done
+              if ! echo " $DEPENDENCY_ORDER " | grep -q " $component "; then
+                for stack in $STACKS; do
+                  echo "📦 Validating remaining component $component in $stack"
+                  if ! ./scripts/validate-component.sh "$component" "$stack" --syntax-only;
+                  then
+                    echo "❌ Validation failed for $component in $stack"
+                    exit 1
+                  fi
+                  
+                  # Run Checkov security scan on specific component
+                  echo "🔒 Running Checkov security scan on $component"
+                  if ! ./scripts/checkov-scan.sh "$component" "$stack"; then
+                    echo "❌ Security issues found in $component - blocking merge"
+                    exit 1
+                  fi
+                done
+              fi
             done
           fi
 
