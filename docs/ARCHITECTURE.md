@@ -337,6 +337,8 @@ terraform:
 - **No Hardcoded Secrets**: All secrets externalized
 - **Environment Variables**: Runtime secret injection
 - **Azure Key Vault**: Centralized secret storage
+- **Placeholder Values**: Sensitive data replaced with environment variables
+- **CI/CD Security**: Automated security scanning with Checkov
 
 #### Key Vault Security Patterns
 
@@ -374,7 +376,7 @@ terraform:
 The One Platform currently has a fully operational development environment deployed in Azure East US region with the following architecture:
 
 ```
-Azure Subscription: fa626e61-2056-42b0-847a-1aad6fa3b5dd
+Azure Subscription: ${AZURE_SUBSCRIPTION_ID}
 └── Resource Group: lalb-services-eus
     ├── 🌐 Networking
     │   ├── Virtual Network: lalbnetworkeus (10.0.0.0/16)
@@ -433,7 +435,9 @@ All components have been successfully deployed and validated:
 ### Automated Workflows
 1. **Semantic Versioning**: Automated tagging on PR merge
 2. **Pull Request Validation**: Automated testing
-3. **Security Scanning**: Code and configuration analysis
+3. **Security Scanning**: Code and configuration analysis with Checkov
+4. **Compliance Validation**: Automated policy enforcement
+5. **Infrastructure Security**: Static analysis of Terraform code
 
 ### Workflow Triggers
 - **Pull Request**: Validation and testing
@@ -461,6 +465,8 @@ All components have been successfully deployed and validated:
 - Private connectivity by default
 - Minimal permissions
 - Audit and compliance ready
+- Automated security scanning
+- Policy as code enforcement
 
 ### 5. Maintainability
 - Clear documentation
@@ -474,7 +480,8 @@ All components have been successfully deployed and validated:
 2. **Advanced Networking**: Hub-spoke architectures
 3. **Monitoring Integration**: Observability components
 4. **Cost Management**: Resource optimization
-5. **Compliance**: Policy as code
+5. **Enhanced Security**: Advanced threat detection
+6. **Compliance Automation**: Continuous compliance monitoring
 
 ### Extensibility Points
 - New Azure service components

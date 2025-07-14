@@ -26,6 +26,17 @@ jobs:
         with:
           terraform_version: "~1.9"
 
+      - name: Setup Python and install Checkov
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Checkov
+        run: |
+          python -m pip install --upgrade pip
+          pip install checkov
+          checkov --version
+
       - name: Install Atmos
         run: |
           # Download latest Atmos release directly from GitHub
@@ -87,11 +98,96 @@ jobs:
             --resource-group $ATMOS_BACKEND_RESOURCE_GROUP \
             --output tsv > /dev/null
 
+      - name: Validate Terraform formatting
+        run: |
+          echo "🎨 Checking Terraform formatting..."
+          cd atmos/components/terraform/modules
+          find . -name "*.tf" -exec terraform fmt -check=true -diff=true {} + || {
+            echo "❌ Terraform files are not properly formatted!"
+            echo "Run 'terraform fmt -recursive' to fix formatting issues."
+            exit 1
+          }
+          echo "✅ All Terraform files are properly formatted"
+
+      - name: Validate Terraform syntax
+        run: |
+          echo "✅ Validating Terraform syntax..."
+          cd atmos/components/terraform/modules
+          for module_dir in */; do
+            echo "Validating module: $module_dir"
+            cd "$module_dir"
+            terraform init -backend=false > /dev/null 2>&1
+            if ! terraform validate; then
+              echo "❌ Terraform validation failed for module: $module_dir"
+              exit 1
+            fi
+            cd ..
+          done
+          echo "✅ All Terraform modules are syntactically valid"
+
+      - name: Check for hardcoded values
+        run: |
+          echo "🔍 Checking for hardcoded sensitive values..."
+          # Check for potential hardcoded secrets, IDs, and credentials
+          HARDCODED_PATTERNS=(
+            "subscription.*=.*['\"][0-9a-f-]{36}['\"]"
+            "client_id.*=.*['\"][0-9a-f-]{36}['\"]"
+            "tenant_id.*=.*['\"][0-9a-f-]{36}['\"]"
+            "object_id.*=.*['\"][0-9a-f-]{36}['\"]"
+            "password.*=.*['\"][^'\"]{8,}['\"]"
+            "secret.*=.*['\"][^'\"]{8,}['\"]"
+            "key.*=.*['\"][A-Za-z0-9+/]{20,}['\"]"
+            "token.*=.*['\"][A-Za-z0-9+/]{20,}['\"]"
+          )
+          
+          FOUND_ISSUES=false
+          
+          # Search in Terraform files
+          find atmos/components/terraform/modules -name "*.tf" -type f | while read -r file; do
+            for pattern in "${HARDCODED_PATTERNS[@]}"; do
+              if grep -Pi "$pattern" "$file"; then
+                echo "❌ Potential hardcoded value found in $file"
+                FOUND_ISSUES=true
+              fi
+            done
+          done
+          
+          # Search in stack files 
+          find atmos/stacks -name "*.yaml" -type f | while read -r file; do
+            for pattern in "${HARDCODED_PATTERNS[@]}"; do
+              if grep -Pi "$pattern" "$file"; then
+                echo "❌ Potential hardcoded value found in $file"
+                FOUND_ISSUES=true
+              fi
+            done
+          done
+          
+          if [ "$FOUND_ISSUES" = true ]; then
+            echo "❌ Hardcoded values detected! Please use variables or reference outputs instead."
+            echo "Acceptable patterns:"
+            echo "  - var.subscription_id"
+            echo "  - \"\{{ (atmos.Component \"component-name\" .stack).outputs.value }}\""
+            echo "  - Use PLACEHOLDER values with instructions in SETUP.md"
+            exit 1
+          fi
+          
+          echo "✅ No hardcoded sensitive values detected"
+
       - name: Validate stack configuration
         run: |
           echo "🔍 Validating Atmos stack configuration..."
           cd atmos
           atmos validate stacks
+
+      - name: Run Checkov security scan
+        run: |
+          echo "🔒 Running Checkov security scan..."
+          if ! ./scripts/checkov-scan.sh --all; then
+            echo "❌ Security issues found! Please fix before merging."
+            echo "Run './scripts/checkov-scan.sh --all --html' for detailed report."
+            exit 1
+          fi
+          echo "✅ No critical security issues found"
 
       - name: Detect changed components
         id: detect-changes
@@ -192,6 +288,13 @@ jobs:
                   echo "❌ Validation failed for $component in $stack"
                   exit 1
                 fi
+                
+                # Run Checkov security scan on specific component
+                echo "🔒 Running Checkov security scan on $component"
+                if ! ./scripts/checkov-scan.sh "$component" "$stack"; then
+                  echo "❌ Security issues found in $component - blocking merge"
+                  exit 1
+                fi
               done
             done
           fi
@@ -210,6 +313,7 @@ jobs:
           path: |
             /tmp/atmos-*.log
             ~/.atmos/logs/
+            security/reports/
           retention-days: 7
           if-no-files-found: ignore
 
@@ -242,6 +346,7 @@ jobs:
             - Missing required variables
             - Terraform syntax errors
             - Stack inheritance issues
+            - Security policy violations (Checkov)
 
             Please fix the issues and push your changes to re-trigger
             validation.`;

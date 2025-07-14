@@ -1,0 +1,192 @@
+import:
+  - orgs/lazylabs/_defaults
+  - catalog/azure-rsg/defaults
+  - catalog/azure-rsg/mixins/dev
+  - catalog/azure-vnet/defaults
+  - catalog/azure-vnet/mixins/dev
+  - catalog/azure-subnet/defaults
+  - catalog/azure-subnet/mixins/dev
+  - catalog/azure-storage-account/defaults
+  - catalog/azure-storage-account/mixins/dev
+  - catalog/azure-keyvault/defaults
+  - catalog/azure-keyvault/mixins/dev
+  - catalog/azure-app-service-plan/defaults
+  - catalog/azure-app-service-plan/mixins/dev
+  - catalog/azure-function-app/defaults
+  - catalog/azure-function-app/mixins/dev
+
+vars:
+  environment: "weu"
+  stage: "dev"
+  location: "westeurope"
+  # subscription_id inherited from org defaults
+
+components:
+  terraform:
+    # Resource Group in West Europe
+    azure-resource-group:
+      vars:
+        name: "services"
+        attributes: ["shared"]
+
+    # VNet with /24 CIDR in West Europe
+    azure-vnet:
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+      vars:
+        name: "network"
+        address_space: ["10.1.0.0/24"]
+        dns_servers: ["168.63.129.16"]
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+
+    # Subnet 1: Web tier (/25 - 128 IPs: 10.1.0.0-10.1.0.127)
+    azure-subnet-web:
+      metadata:
+        component: azure-subnet
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-vnet"
+      vars:
+        name: "web"
+        address_prefixes: ["10.1.0.0/25"]
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        virtual_network_name: !terraform.output azure-vnet ".vnet_name"
+        private_endpoint_network_policies: "Enabled"
+
+    # Subnet 2: App tier (/25 - 128 IPs: 10.1.0.128-10.1.0.255)
+    azure-subnet-app:
+      metadata:
+        component: azure-subnet
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-vnet"
+      vars:
+        name: "app"
+        address_prefixes: ["10.1.0.128/25"]
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        virtual_network_name: !terraform.output azure-vnet ".vnet_name"
+        private_endpoint_network_policies: "Enabled"
+
+    # Key Vault Dev in West Europe
+    azure-keyvault-dev:
+      metadata:
+        component: azure-keyvault
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+      vars:
+        name: "secrets"
+        location: "westeurope"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        
+        # Disable current user access to avoid Azure AD permission issues
+        add_current_user_access: false
+        
+        # Access policies will be configured after deployment
+        # access_policies: {}
+        
+        # Development-friendly settings
+        public_network_access_enabled: true
+        network_acls:
+          default_action: "Allow"
+          bypass: "AzureServices"
+        
+        # Development secrets
+        secrets:
+          database-connection:
+            value: "Server=weu-sql.database.windows.net;Database=appdb;..."
+            content_type: "connection-string"
+          api-base-url:
+            value: "https://api-weu.company.com"
+            content_type: "url"
+
+    # Storage Account 1 in West Europe
+    azure-storage-account-weu:
+      metadata:
+        component: azure-storage-account
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+      vars:
+        name: "general"
+        attributes: ["weu"]
+        location: "westeurope"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        create_private_endpoints: false
+        # Allow public access for Function App integration
+        public_network_access_enabled: true
+        network_rules:
+          default_action: "Allow"
+          bypass:
+            - "AzureServices"
+
+    # Storage Account 2 in Spain Central
+    azure-storage-account-spaincentral:
+      metadata:
+        component: azure-storage-account
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+      vars:
+        name: "backup"
+        attributes: ["spain"]
+        location: "spaincentral"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        create_private_endpoints: false
+
+    # App Service Plan (Consumption/Serverless tier) in West Europe
+    azure-app-service-plan-free:
+      metadata:
+        component: azure-app-service-plan
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+      vars:
+        name: "webapp"
+        attributes: ["serverless"]
+        location: "westeurope"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        os_type: "Linux"
+        sku_name: "Y1"  # Consumption tier for Function Apps
+        worker_count: 1
+
+    # Function App with Python 3.11 (Serverless)
+    azure-function-app-python:
+      metadata:
+        component: azure-function-app
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+          2:
+            component: "azure-app-service-plan-free"
+          3:
+            component: "azure-storage-account-weu"
+      vars:
+        name: "processor"
+        attributes: ["python", "serverless"]
+        location: "westeurope"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+        service_plan_id: !terraform.output azure-app-service-plan-free ".app_service_plan_id"
+        storage_account_name: !terraform.output azure-storage-account-weu ".storage_account_name"
+        storage_account_access_key: !terraform.output azure-storage-account-weu ".storage_account_primary_access_key"
+        os_type: "Linux"
+        functions_worker_runtime: "python"
+        application_stack:
+          python_version: "3.11"
+        app_settings:
+          PYTHON_VERSION: "3.11"
+          ENABLE_ORYX_BUILD: "true"
+          FUNCTIONS_WORKER_RUNTIME: "python"

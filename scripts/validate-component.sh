@@ -35,6 +35,36 @@ print_status $BLUE "🔍 Validating component: $COMPONENT in stack: $STACK"
 # Change to the project root directory (assuming script is in scripts/)
 cd "$(dirname "$0")/.."
 
+# Check Terraform formatting for the specific component
+print_status $YELLOW "🎨 Checking Terraform formatting for component: $COMPONENT..."
+COMPONENT_DIR="atmos/components/terraform/modules/$COMPONENT"
+if [ -d "$COMPONENT_DIR" ]; then
+    cd "$COMPONENT_DIR"
+    if terraform fmt -check=true -diff=true; then
+        print_status $GREEN "✅ Terraform files are properly formatted"
+    else
+        print_status $RED "❌ Terraform files are not properly formatted"
+        print_status $YELLOW "Run 'terraform fmt' in $COMPONENT_DIR to fix formatting"
+        exit 1
+    fi
+    cd - > /dev/null
+else
+    print_status $RED "❌ Component directory not found: $COMPONENT_DIR"
+    exit 1
+fi
+
+# Validate Terraform syntax for the component
+print_status $YELLOW "✅ Validating Terraform syntax for component: $COMPONENT..."
+cd "$COMPONENT_DIR"
+terraform init -backend=false > /dev/null 2>&1
+if terraform validate; then
+    print_status $GREEN "✅ Terraform syntax is valid"
+    cd - > /dev/null
+else
+    print_status $RED "❌ Terraform validation failed"
+    exit 1
+fi
+
 # Validate stack configuration
 print_status $YELLOW "📋 Validating stack configuration..."
 if atmos validate stacks; then
