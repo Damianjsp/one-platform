@@ -9,7 +9,7 @@ name: Atmos Component Validation
 
 permissions:
   contents: read           # Required to checkout code
-  issues: write           # Required to create/update comments on issues  
+  issues: write           # Required to create/update comments on issues
   pull-requests: write    # Required to create/update comments on PRs
   actions: read           # Required to read workflow run details
 
@@ -34,7 +34,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      
+
       - name: Install Checkov
         run: |
           python -m pip install --upgrade pip
@@ -45,12 +45,13 @@ jobs:
         uses: cloudposse/github-action-setup-atmos@v2
         with:
           install-wrapper: false
+          atmos-version: "1.182.0"
 
       - name: Configure Azure credentials
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-          
+
       - name: Set Terraform ARM environment variables
         run: |
           # Extract credentials from AZURE_CREDENTIALS secret and set ARM_* variables
@@ -59,13 +60,13 @@ jobs:
           CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret)
           SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
           TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
-          
+
           # Mask the sensitive values in logs
           echo "::add-mask::$CLIENT_ID"
           echo "::add-mask::$CLIENT_SECRET"
           echo "::add-mask::$SUBSCRIPTION_ID"
           echo "::add-mask::$TENANT_ID"
-          
+
           # Set environment variables
           echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
           echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
@@ -77,7 +78,7 @@ jobs:
           echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
           echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
           echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
-          
+
       - name: Initialize Terraform backend
         run: |
           # Configure Terraform backend for state management
@@ -127,9 +128,9 @@ jobs:
             "key.*=.*['\"][A-Za-z0-9+/]{20,}['\"]"
             "token.*=.*['\"][A-Za-z0-9+/]{20,}['\"]"
           )
-          
+
           FOUND_ISSUES=false
-          
+
           # Search in Terraform files
           find atmos/components/terraform/modules -name "*.tf" -type f | while read -r file; do
             for pattern in "${HARDCODED_PATTERNS[@]}"; do
@@ -139,8 +140,8 @@ jobs:
               fi
             done
           done
-          
-          # Search in stack files 
+
+          # Search in stack files
           find atmos/stacks -name "*.yaml" -type f | while read -r file; do
             for pattern in "${HARDCODED_PATTERNS[@]}"; do
               if grep -Pi "$pattern" "$file"; then
@@ -149,7 +150,7 @@ jobs:
               fi
             done
           done
-          
+
           if [ "$FOUND_ISSUES" = true ]; then
             echo "❌ Hardcoded values detected! Please use variables or reference outputs instead."
             echo "Acceptable patterns:"
@@ -158,7 +159,7 @@ jobs:
             echo "  - Use PLACEHOLDER values with instructions in SETUP.md"
             exit 1
           fi
-          
+
           echo "✅ No hardcoded sensitive values detected"
 
       - name: Validate stack configuration
@@ -185,7 +186,7 @@ jobs:
             # Fetch the base branch for proper diff
             echo "🔄 Fetching base branch: ${{ github.base_ref }}"
             git fetch origin ${{ github.base_ref }} --depth=50
-            
+
             # Try multiple diff strategies
             CHANGED_FILES=""
             if git diff --name-only origin/${{ github.base_ref }}...HEAD > /dev/null 2>&1; then
@@ -240,7 +241,7 @@ jobs:
             for stack in $STACKS; do
               # Get all components for the stack
               STACK_COMPONENTS=$(atmos list components -s "$stack" | grep -v "^$" | sort)
-              
+
               # Filter out known abstract components (much faster than describe)
               CONCRETE_COMPONENTS=""
               for component in $STACK_COMPONENTS; do
@@ -253,7 +254,7 @@ jobs:
                   CONCRETE_COMPONENTS="$CONCRETE_COMPONENTS $component"
                 fi
               done
-              
+
               ALL_COMPONENTS="$ALL_COMPONENTS $CONCRETE_COMPONENTS"
             done
             COMPONENTS=$(echo $ALL_COMPONENTS | tr ' ' '\n' | \
@@ -292,10 +293,10 @@ jobs:
             done
           else
             echo "🔍 Validating specific components: $COMPONENTS"
-            
+
             # Define dependency order for validation (dependencies first)
             DEPENDENCY_ORDER="azure-resource-group azure-vnet azure-subnet azure-nsg azure-storage-account azure-storage-account-general azure-storage-account-private azure-storage-account-datalake azure-keyvault azure-keyvault-dev azure-keyvault-secure azure-app-service-plan-web azure-app-service-plan-api azure-function-app-api azure-function-app-processor azure-private-endpoint azure-private-endpoint-storage-blob azure-private-endpoint-datalake-blob azure-private-endpoint-datalake-dfs azure-private-endpoint-keyvault"
-            
+
             # Validate components in dependency order
             for ordered_component in $DEPENDENCY_ORDER; do
               # Check if this component is in our list to validate
@@ -309,7 +310,7 @@ jobs:
                       echo "❌ Validation failed for $ordered_component in $stack"
                       exit 1
                     fi
-                    
+
                     # Run Checkov security scan on specific component
                     echo "🔒 Running Checkov security scan on $ordered_component"
                     if ! ./scripts/checkov-scan.sh "$ordered_component" "$stack"; then
@@ -322,7 +323,7 @@ jobs:
                 done
               fi
             done
-            
+
             # Validate any remaining components not in the dependency order
             for component in $COMPONENTS; do
               if ! echo " $DEPENDENCY_ORDER " | grep -q " $component "; then
@@ -335,7 +336,7 @@ jobs:
                       echo "❌ Validation failed for $component in $stack"
                       exit 1
                     fi
-                    
+
                     # Run Checkov security scan on specific component
                     echo "🔒 Running Checkov security scan on $component"
                     if ! ./scripts/checkov-scan.sh "$component" "$stack"; then

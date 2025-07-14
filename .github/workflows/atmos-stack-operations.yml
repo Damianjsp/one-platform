@@ -31,7 +31,7 @@ jobs:
     outputs:
       matrix: ${{ steps.affected.outputs.matrix }}
       has-affected-stacks: ${{ steps.affected.outputs.has-affected-stacks }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -76,10 +76,10 @@ jobs:
         uses: cloudposse/github-action-atmos-affected-stacks@v6
         with:
           atmos-config-path: ./atmos/
-          atmos-version: "1.99.0"
+          atmos-version: "1.182.0"
           nested-matrices-count: 1
-          include-dependents: ${{ inputs.include-dependents }}
-          include-spacelift-admin-stacks: false
+          atmos-include-dependents: ${{ inputs.include-dependents }}
+          atmos-include-spacelift-admin-stacks: false
 
   plan:
     name: 📋 Plan Component
@@ -92,7 +92,7 @@ jobs:
         include: ${{ fromJson(needs.affected.outputs.matrix) }}
       fail-fast: false
       max-parallel: 10
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -150,7 +150,7 @@ jobs:
         id: filter
         run: |
           COMPONENT="${{ matrix.component }}"
-          
+
           # Check if component is abstract
           if [ "$COMPONENT" = "azure-app-service-plan" ] || [ "$COMPONENT" = "azure-function-app" ] || [ "$COMPONENT" = "azure-keyvault" ] || [ "$COMPONENT" = "azure-storage-account" ] || [ "$COMPONENT" = "azure-private-endpoint" ]; then
             echo "skip=true" >> $GITHUB_OUTPUT
@@ -167,7 +167,7 @@ jobs:
           component: ${{ matrix.component }}
           stack: ${{ matrix.stack }}
           atmos-config-path: ./atmos/
-          atmos-version: "1.99.0"
+          atmos-version: "1.182.0"
 
       - name: Generate Plan Summary
         if: steps.filter.outputs.skip == 'false'
@@ -188,7 +188,7 @@ jobs:
         include: ${{ fromJson(needs.affected.outputs.matrix) }}
       fail-fast: false
       max-parallel: 5
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -237,7 +237,7 @@ jobs:
         id: filter
         run: |
           COMPONENT="${{ matrix.component }}"
-          
+
           # Check if component is abstract
           if [ "$COMPONENT" = "azure-app-service-plan" ] || [ "$COMPONENT" = "azure-function-app" ] || [ "$COMPONENT" = "azure-keyvault" ] || [ "$COMPONENT" = "azure-storage-account" ] || [ "$COMPONENT" = "azure-private-endpoint" ]; then
             echo "skip=true" >> $GITHUB_OUTPUT
@@ -257,14 +257,14 @@ jobs:
           issue-title: "Apply ${{ matrix.component }} in ${{ matrix.stack }}"
           issue-body: |
             ## 🚨 Manual Approval Required
-            
+
             **Component**: ${{ matrix.component }}
             **Stack**: ${{ matrix.stack }}
             **Triggered by**: @${{ github.actor }}
-            
+
             ### ⚠️ Warning
             This action will modify your infrastructure!
-            
+
             ### ✅ Approval
             Comment with `/approve` to proceed or `/deny` to cancel.
 
@@ -275,7 +275,7 @@ jobs:
           component: ${{ matrix.component }}
           stack: ${{ matrix.stack }}
           atmos-config-path: ./atmos/
-          atmos-version: "1.99.0"
+          atmos-version: "1.182.0"
 
   destroy:
     name: 🔥 Destroy Component
@@ -288,7 +288,7 @@ jobs:
         include: ${{ fromJson(needs.affected.outputs.matrix) }}
       fail-fast: false
       max-parallel: 3
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -337,7 +337,7 @@ jobs:
         id: filter
         run: |
           COMPONENT="${{ matrix.component }}"
-          
+
           # Check if component is abstract
           if [ "$COMPONENT" = "azure-app-service-plan" ] || [ "$COMPONENT" = "azure-function-app" ] || [ "$COMPONENT" = "azure-keyvault" ] || [ "$COMPONENT" = "azure-storage-account" ] || [ "$COMPONENT" = "azure-private-endpoint" ]; then
             echo "skip=true" >> $GITHUB_OUTPUT
@@ -357,15 +357,15 @@ jobs:
           issue-title: "Destroy ${{ matrix.component }} in ${{ matrix.stack }}"
           issue-body: |
             ## 🚨 DESTRUCTIVE ACTION - Manual Approval Required
-            
+
             **Component**: ${{ matrix.component }}
             **Stack**: ${{ matrix.stack }}
             **Triggered by**: @${{ github.actor }}
-            
+
             ### ⚠️ DANGER
             This action will **DESTROY** your infrastructure!
             This action cannot be undone!
-            
+
             ### ✅ Approval
             Comment with `/approve` to proceed or `/deny` to cancel.
 
@@ -374,10 +374,10 @@ jobs:
         run: |
           cd atmos
           echo "🔥 Destroying component: ${{ matrix.component }} in stack: ${{ matrix.stack }}"
-          
+
           if ! atmos terraform destroy "${{ matrix.component }}" -s "${{ matrix.stack }}" -auto-approve; then
             echo "❌ Destroy failed for component: ${{ matrix.component }}"
             exit 1
           fi
-          
+
           echo "✅ Destroy completed for component: ${{ matrix.component }}"
