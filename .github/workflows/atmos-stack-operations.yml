@@ -1,0 +1,383 @@
+---
+name: Atmos Stack Operations (Affected Components)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+        default: 'plan'
+      stack:
+        description: 'Stack name (e.g., core-eus-dev)'
+        required: true
+        type: string
+      include-dependents:
+        description: 'Include dependent stacks'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  affected:
+    name: 🔍 Determine Affected Components
+    runs-on: ubuntu-latest
+    environment: damian_ent_azure
+    outputs:
+      matrix: ${{ steps.affected.outputs.matrix }}
+      has-affected-stacks: ${{ steps.affected.outputs.has-affected-stacks }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Atmos
+        uses: cloudposse/github-action-setup-atmos@v2
+        with:
+          install-wrapper: false
+
+      - name: Configure Azure credentials
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set Terraform ARM environment variables
+        run: |
+          echo "Setting ARM environment variables for Terraform..."
+          CLIENT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientId)
+          CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret)
+          SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
+          TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
+
+          # Set backend configuration variables
+          echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
+
+          # Mask sensitive values
+          echo "::add-mask::$CLIENT_ID"
+          echo "::add-mask::$CLIENT_SECRET"
+          echo "::add-mask::$SUBSCRIPTION_ID"
+          echo "::add-mask::$TENANT_ID"
+
+          # Set ARM environment variables
+          echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+
+      - name: Determine affected stacks
+        id: affected
+        uses: cloudposse/github-action-atmos-affected-stacks@v6
+        with:
+          atmos-config-path: ./atmos/
+          atmos-version: "1.99.0"
+          nested-matrices-count: 1
+          include-dependents: ${{ inputs.include-dependents }}
+          include-spacelift-admin-stacks: false
+
+  plan:
+    name: 📋 Plan Component
+    runs-on: ubuntu-latest
+    environment: damian_ent_azure
+    needs: [affected]
+    if: needs.affected.outputs.has-affected-stacks == 'true'
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.affected.outputs.matrix) }}
+      fail-fast: false
+      max-parallel: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install tabulate
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - name: Setup Atmos
+        uses: cloudposse/github-action-setup-atmos@v2
+        with:
+          install-wrapper: false
+
+      - name: Configure Azure credentials
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set Terraform ARM environment variables
+        run: |
+          echo "Setting ARM environment variables for Terraform..."
+          CLIENT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientId)
+          CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret)
+          SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
+          TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
+
+          # Set backend configuration variables
+          echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
+
+          # Mask sensitive values
+          echo "::add-mask::$CLIENT_ID"
+          echo "::add-mask::$CLIENT_SECRET"
+          echo "::add-mask::$SUBSCRIPTION_ID"
+          echo "::add-mask::$TENANT_ID"
+
+          # Set ARM environment variables
+          echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+
+      - name: Filter abstract components
+        id: filter
+        run: |
+          COMPONENT="${{ matrix.component }}"
+          
+          # Check if component is abstract
+          if [ "$COMPONENT" = "azure-app-service-plan" ] || [ "$COMPONENT" = "azure-function-app" ] || [ "$COMPONENT" = "azure-keyvault" ] || [ "$COMPONENT" = "azure-storage-account" ] || [ "$COMPONENT" = "azure-private-endpoint" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️  Skipping abstract component: $COMPONENT"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Planning concrete component: $COMPONENT"
+          fi
+
+      - name: Plan Terraform Component
+        if: steps.filter.outputs.skip == 'false'
+        uses: cloudposse/github-action-atmos-terraform-plan@v2
+        with:
+          component: ${{ matrix.component }}
+          stack: ${{ matrix.stack }}
+          atmos-config-path: ./atmos/
+          atmos-version: "1.99.0"
+
+      - name: Generate Plan Summary
+        if: steps.filter.outputs.skip == 'false'
+        run: |
+          echo "📋 Plan Summary for ${{ matrix.component }} in ${{ matrix.stack }}"
+          echo "Component: ${{ matrix.component }}"
+          echo "Stack: ${{ matrix.stack }}"
+          echo "Status: ✅ Plan completed successfully"
+
+  apply:
+    name: 🚀 Apply Component
+    runs-on: ubuntu-latest
+    environment: damian_ent_azure
+    needs: [affected, plan]
+    if: inputs.action == 'apply' && needs.affected.outputs.has-affected-stacks == 'true'
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.affected.outputs.matrix) }}
+      fail-fast: false
+      max-parallel: 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - name: Setup Atmos
+        uses: cloudposse/github-action-setup-atmos@v2
+        with:
+          install-wrapper: false
+
+      - name: Configure Azure credentials
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set Terraform ARM environment variables
+        run: |
+          echo "Setting ARM environment variables for Terraform..."
+          CLIENT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientId)
+          CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret)
+          SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
+          TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
+
+          # Set backend configuration variables
+          echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
+
+          # Mask sensitive values
+          echo "::add-mask::$CLIENT_ID"
+          echo "::add-mask::$CLIENT_SECRET"
+          echo "::add-mask::$SUBSCRIPTION_ID"
+          echo "::add-mask::$TENANT_ID"
+
+          # Set ARM environment variables
+          echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+
+      - name: Filter abstract components
+        id: filter
+        run: |
+          COMPONENT="${{ matrix.component }}"
+          
+          # Check if component is abstract
+          if [ "$COMPONENT" = "azure-app-service-plan" ] || [ "$COMPONENT" = "azure-function-app" ] || [ "$COMPONENT" = "azure-keyvault" ] || [ "$COMPONENT" = "azure-storage-account" ] || [ "$COMPONENT" = "azure-private-endpoint" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️  Skipping abstract component: $COMPONENT"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Applying concrete component: $COMPONENT"
+          fi
+
+      - name: Manual Approval Required
+        if: steps.filter.outputs.skip == 'false'
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: ${{ github.actor }}
+          minimum-approvals: 1
+          issue-title: "Apply ${{ matrix.component }} in ${{ matrix.stack }}"
+          issue-body: |
+            ## 🚨 Manual Approval Required
+            
+            **Component**: ${{ matrix.component }}
+            **Stack**: ${{ matrix.stack }}
+            **Triggered by**: @${{ github.actor }}
+            
+            ### ⚠️ Warning
+            This action will modify your infrastructure!
+            
+            ### ✅ Approval
+            Comment with `/approve` to proceed or `/deny` to cancel.
+
+      - name: Apply Terraform Component
+        if: steps.filter.outputs.skip == 'false'
+        uses: cloudposse/github-action-atmos-terraform-apply@v2
+        with:
+          component: ${{ matrix.component }}
+          stack: ${{ matrix.stack }}
+          atmos-config-path: ./atmos/
+          atmos-version: "1.99.0"
+
+  destroy:
+    name: 🔥 Destroy Component
+    runs-on: ubuntu-latest
+    environment: damian_ent_azure
+    needs: [affected]
+    if: inputs.action == 'destroy' && needs.affected.outputs.has-affected-stacks == 'true'
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.affected.outputs.matrix) }}
+      fail-fast: false
+      max-parallel: 3
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.9"
+
+      - name: Setup Atmos
+        uses: cloudposse/github-action-setup-atmos@v2
+        with:
+          install-wrapper: false
+
+      - name: Configure Azure credentials
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set Terraform ARM environment variables
+        run: |
+          echo "Setting ARM environment variables for Terraform..."
+          CLIENT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientId)
+          CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret)
+          SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
+          TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
+
+          # Set backend configuration variables
+          echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
+          echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
+
+          # Mask sensitive values
+          echo "::add-mask::$CLIENT_ID"
+          echo "::add-mask::$CLIENT_SECRET"
+          echo "::add-mask::$SUBSCRIPTION_ID"
+          echo "::add-mask::$TENANT_ID"
+
+          # Set ARM environment variables
+          echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+
+      - name: Filter abstract components
+        id: filter
+        run: |
+          COMPONENT="${{ matrix.component }}"
+          
+          # Check if component is abstract
+          if [ "$COMPONENT" = "azure-app-service-plan" ] || [ "$COMPONENT" = "azure-function-app" ] || [ "$COMPONENT" = "azure-keyvault" ] || [ "$COMPONENT" = "azure-storage-account" ] || [ "$COMPONENT" = "azure-private-endpoint" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️  Skipping abstract component: $COMPONENT"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Destroying concrete component: $COMPONENT"
+          fi
+
+      - name: Manual Approval Required
+        if: steps.filter.outputs.skip == 'false'
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: ${{ github.actor }}
+          minimum-approvals: 1
+          issue-title: "Destroy ${{ matrix.component }} in ${{ matrix.stack }}"
+          issue-body: |
+            ## 🚨 DESTRUCTIVE ACTION - Manual Approval Required
+            
+            **Component**: ${{ matrix.component }}
+            **Stack**: ${{ matrix.stack }}
+            **Triggered by**: @${{ github.actor }}
+            
+            ### ⚠️ DANGER
+            This action will **DESTROY** your infrastructure!
+            This action cannot be undone!
+            
+            ### ✅ Approval
+            Comment with `/approve` to proceed or `/deny` to cancel.
+
+      - name: Destroy Terraform Component
+        if: steps.filter.outputs.skip == 'false'
+        run: |
+          cd atmos
+          echo "🔥 Destroying component: ${{ matrix.component }} in stack: ${{ matrix.stack }}"
+          
+          if ! atmos terraform destroy "${{ matrix.component }}" -s "${{ matrix.stack }}" -auto-approve; then
+            echo "❌ Destroy failed for component: ${{ matrix.component }}"
+            exit 1
+          fi
+          
+          echo "✅ Destroy completed for component: ${{ matrix.component }}"
