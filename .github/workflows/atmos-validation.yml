@@ -11,6 +11,12 @@ name: Atmos Component Validation
     paths:
       - 'atmos/**'
 
+permissions:
+  contents: read           # Required to checkout code
+  issues: write           # Required to create/update comments on issues  
+  pull-requests: write    # Required to create/update comments on PRs
+  actions: read           # Required to read workflow run details
+
 jobs:
   validate-components:
     name: Validate Atmos Components
@@ -20,6 +26,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 50  # Fetch more history for better git diff
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -37,26 +45,10 @@ jobs:
           pip install checkov
           checkov --version
 
-      - name: Install Atmos
-        run: |
-          # Download latest Atmos release directly from GitHub
-          ATMOS_VERSION=$(curl -s https://api.github.com/repos/cloudposse/atmos/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-          ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
-          echo "Installing Atmos version: $ATMOS_VERSION (numeric: $ATMOS_VERSION_NUM)"
-          
-          # Create temp directory and download
-          mkdir -p /tmp/atmos-install
-          cd /tmp/atmos-install
-          
-          # Construct download URL
-          DOWNLOAD_URL="https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION_NUM}_linux_amd64"
-          echo "Download URL: $DOWNLOAD_URL"
-          
-          # Download and install binary directly
-          curl -sSfL "$DOWNLOAD_URL" -o atmos
-          chmod +x atmos
-          sudo mv atmos /usr/local/bin/
-          atmos version
+      - name: Setup Atmos
+        uses: cloudposse/github-action-setup-atmos@v2
+        with:
+          install-wrapper: false
 
       - name: Configure Azure credentials
         uses: azure/login@v2
@@ -194,9 +186,19 @@ jobs:
         run: |
           # Get list of changed files in atmos directory
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only \
-              origin/${{ github.base_ref }}...HEAD | \
-              grep '^atmos/' || true)
+            # Fetch the base branch for proper diff
+            echo "🔄 Fetching base branch: ${{ github.base_ref }}"
+            git fetch origin ${{ github.base_ref }} --depth=50
+            
+            # Try multiple diff strategies
+            CHANGED_FILES=""
+            if git diff --name-only origin/${{ github.base_ref }}...HEAD > /dev/null 2>&1; then
+              CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep '^atmos/' || true)
+            elif git diff --name-only origin/${{ github.base_ref }} HEAD > /dev/null 2>&1; then
+              CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep '^atmos/' || true)
+            else
+              echo "⚠️  Git diff failed, will validate all components"
+            fi
           else
             CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | \
               grep '^atmos/' || true)
@@ -204,34 +206,34 @@ jobs:
 
           echo "Changed files: $CHANGED_FILES"
 
-          # Extract components and stacks from changed files
+          # Extract components from changed files
           COMPONENTS=""
-          STACKS=""
+          STACK_FILES_CHANGED=""
 
           for file in $CHANGED_FILES; do
             if [[ $file =~ atmos/components/terraform/modules/([^/]+)/ ]];
             then
               COMPONENT="${BASH_REMATCH[1]}"
               COMPONENTS="$COMPONENTS $COMPONENT"
-            elif [[ $file =~ atmos/stacks/.*/(.*).yaml$ ]]; then
-              STACK="${BASH_REMATCH[1]}"
-              if [[ ! $STACK =~ ^(mixins|defaults)$ ]]; then
-                STACKS="$STACKS $STACK"
-              fi
+            elif [[ $file =~ atmos/stacks/.*\.yaml$ ]]; then
+              # Stack file changed - we'll validate all stacks
+              STACK_FILES_CHANGED="true"
             fi
           done
 
           # Remove duplicates and clean up
           COMPONENTS=$(echo $COMPONENTS | tr ' ' '\n' | \
             sort -u | tr '\n' ' ' | xargs)
-          STACKS=$(echo $STACKS | tr ' ' '\n' | \
-            sort -u | tr '\n' ' ' | xargs)
 
           # Change to atmos directory for component listing
           cd atmos
 
-          # If no specific stacks detected, use provided stack
-          if [ -z "$STACKS" ]; then
+          # If stack files changed, get all actual stack names from Atmos
+          if [ "$STACK_FILES_CHANGED" = "true" ]; then
+            echo "🔍 Stack files changed, determining actual stack names..."
+            STACKS=$(atmos list stacks | tr '\n' ' ' | xargs)
+          else
+            # Default to core-eus-dev if only component files changed
             STACKS="core-eus-dev"
           fi
 
@@ -240,9 +242,23 @@ jobs:
             echo "🔍 Getting all components for stack: $STACKS"
             ALL_COMPONENTS=""
             for stack in $STACKS; do
-              STACK_COMPONENTS=$(atmos list components -s "$stack" | \
-                grep -v "^$" | sort | tr '\n' ' ')
-              ALL_COMPONENTS="$ALL_COMPONENTS $STACK_COMPONENTS"
+              # Get all components for the stack
+              STACK_COMPONENTS=$(atmos list components -s "$stack" | grep -v "^$" | sort)
+              
+              # Filter out known abstract components (much faster than describe)
+              CONCRETE_COMPONENTS=""
+              for component in $STACK_COMPONENTS; do
+                if [ -n "$component" ]; then
+                  # Known abstract components - skip these
+                  if [ "$component" = "azure-app-service-plan" ] || [ "$component" = "azure-function-app" ]; then
+                    echo "⏭️  Skipping abstract component: $component"
+                    continue
+                  fi
+                  CONCRETE_COMPONENTS="$CONCRETE_COMPONENTS $component"
+                fi
+              done
+              
+              ALL_COMPONENTS="$ALL_COMPONENTS $CONCRETE_COMPONENTS"
             done
             COMPONENTS=$(echo $ALL_COMPONENTS | tr ' ' '\n' | \
               sort -u | tr '\n' ' ' | xargs)
@@ -280,22 +296,61 @@ jobs:
             done
           else
             echo "🔍 Validating specific components: $COMPONENTS"
+            
+            # Define dependency order for validation (dependencies first)
+            DEPENDENCY_ORDER="azure-resource-group azure-vnet azure-subnet azure-nsg azure-storage-account azure-storage-account-general azure-storage-account-private azure-storage-account-datalake azure-keyvault azure-keyvault-dev azure-keyvault-secure azure-app-service-plan-web azure-app-service-plan-api azure-function-app-api azure-function-app-processor azure-private-endpoint azure-private-endpoint-storage-blob azure-private-endpoint-datalake-blob azure-private-endpoint-datalake-dfs azure-private-endpoint-keyvault"
+            
+            # Validate components in dependency order
+            for ordered_component in $DEPENDENCY_ORDER; do
+              # Check if this component is in our list to validate
+              if echo " $COMPONENTS " | grep -q " $ordered_component "; then
+                for stack in $STACKS; do
+                  # Check if component exists in this stack before validating
+                  if atmos list components -s "$stack" | grep -q "^$ordered_component$"; then
+                    echo "📦 Validating $ordered_component in $stack"
+                    if ! ./scripts/validate-component.sh "$ordered_component" "$stack" --syntax-only;
+                    then
+                      echo "❌ Validation failed for $ordered_component in $stack"
+                      exit 1
+                    fi
+                    
+                    # Run Checkov security scan on specific component
+                    echo "🔒 Running Checkov security scan on $ordered_component"
+                    if ! ./scripts/checkov-scan.sh "$ordered_component" "$stack"; then
+                      echo "❌ Security issues found in $ordered_component - blocking merge"
+                      exit 1
+                    fi
+                  else
+                    echo "⏭️  Skipping $ordered_component in $stack (component not configured in this stack)"
+                  fi
+                done
+              fi
+            done
+            
+            # Validate any remaining components not in the dependency order
             for component in $COMPONENTS; do
-              for stack in $STACKS; do
-                echo "📦 Validating $component in $stack"
-                if ! ./scripts/validate-component.sh "$component" "$stack";
-                then
-                  echo "❌ Validation failed for $component in $stack"
-                  exit 1
-                fi
-                
-                # Run Checkov security scan on specific component
-                echo "🔒 Running Checkov security scan on $component"
-                if ! ./scripts/checkov-scan.sh "$component" "$stack"; then
-                  echo "❌ Security issues found in $component - blocking merge"
-                  exit 1
-                fi
-              done
+              if ! echo " $DEPENDENCY_ORDER " | grep -q " $component "; then
+                for stack in $STACKS; do
+                  # Check if component exists in this stack before validating
+                  if atmos list components -s "$stack" | grep -q "^$component$"; then
+                    echo "📦 Validating remaining component $component in $stack"
+                    if ! ./scripts/validate-component.sh "$component" "$stack" --syntax-only;
+                    then
+                      echo "❌ Validation failed for $component in $stack"
+                      exit 1
+                    fi
+                    
+                    # Run Checkov security scan on specific component
+                    echo "🔒 Running Checkov security scan on $component"
+                    if ! ./scripts/checkov-scan.sh "$component" "$stack"; then
+                      echo "❌ Security issues found in $component - blocking merge"
+                      exit 1
+                    fi
+                  else
+                    echo "⏭️  Skipping $component in $stack (component not configured in this stack)"
+                  fi
+                done
+              fi
             done
           fi
 

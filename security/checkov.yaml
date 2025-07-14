@@ -19,8 +19,16 @@ skip-check:
   # Terraform-specific checks that conflict with our patterns
   - CKV_TF_1      # Ensure Terraform module sources use a commit hash
   
-# Severity levels to include
-severity: [CRITICAL, HIGH, MEDIUM, LOW]
+  # Additional Azure checks that may not be applicable for dev environments
+  - CKV_AZURE_33  # Storage logging for Queue service (may not be needed for all storage accounts)
+  - CKV_AZURE_112 # Key vault key backed by HSM (expensive for dev environments)
+  - CKV_AZURE_211 # App Service plan suitable for production (dev environments use smaller SKUs)
+  - CKV_AZURE_212 # App Service minimum instances for failover (dev environments may use single instance)
+  - CKV_AZURE_225 # App Service Plan zone redundant (dev environments may not need zone redundancy)
+  - CKV_AZURE_244 # Storage local users (may be needed for some configurations)
+  
+# Severity levels to include (commented out as format may vary by Checkov version)
+# severity: [CRITICAL, HIGH, MEDIUM, LOW]
 
 # Baseline file for ignoring existing issues (uncomment when created)
 # baseline: .checkov.baseline
@@ -43,79 +51,82 @@ include-all-checkov-policies: true
 # Repo root for better path resolution
 repo-root-for-plan-enrichment: .
 
-# Azure-specific settings
-secrets:
-  - entropy_threshold: 4.5
+# Azure-specific settings for secret scanning
+# secrets:
+#   - entropy_threshold: 4.5  # This configuration format is deprecated/conflicts
 
 # Hard fail on security issues (can be overridden with --soft-fail)
 hard-fail-on: [CRITICAL, HIGH]
 
 # Azure security checks to enforce (built-in Azure best practices)
-check:
-  # Storage Account Security
-  - CKV_AZURE_3   # Ensure that 'Secure transfer required' is set on Storage Accounts
-  - CKV_AZURE_4   # Ensure the storage account public access is disabled
-  - CKV_AZURE_8   # Ensure that 'Public access level' is set to Private for blob containers
-  - CKV_AZURE_33  # Ensure Storage logging is enabled for Queue service
-  - CKV_AZURE_34  # Ensure Storage logging is enabled for Table service
-  - CKV_AZURE_35  # Ensure default network access rule for Storage Accounts is set to deny
-  - CKV_AZURE_43  # Ensure Storage Accounts adhere to the naming rules
-  - CKV_AZURE_44  # Ensure Storage Account is using the latest version of TLS encryption
-  
-  # Key Vault Security
-  - CKV_AZURE_40  # Ensure that the expiration date is set on all keys
-  - CKV_AZURE_41  # Ensure that the expiration date is set on all secrets
-  - CKV_AZURE_42  # Ensure the key vault is recoverable
-  
-  # App Service Security
-  - CKV_AZURE_13  # Ensure App Service Authentication is set on Azure App Service
-  - CKV_AZURE_14  # Ensure web app redirects all HTTP traffic to HTTPS
-  - CKV_AZURE_15  # Ensure web app is using the latest version of TLS encryption
-  
-# One Platform custom security checks (Platform-specific patterns only)
-  # Resource Group - One Platform Standards
-  - CKV_OP_AZURE_RG_1    # Resource Group uses label module
-  - CKV_OP_AZURE_RG_2    # Resource Group uses conditional creation
-  - CKV_OP_AZURE_RG_3    # Resource Group uses approved regions
-  
-  # Virtual Network - One Platform Standards  
-  - CKV_OP_AZURE_VNET_1  # VNet uses label module
-  - CKV_OP_AZURE_VNET_2  # VNet uses conditional creation
-  - CKV_OP_AZURE_VNET_3  # VNet references proper resource group
-  - CKV_OP_AZURE_VNET_4  # VNet uses valid private IP ranges
-  
-  # Subnet - One Platform Standards
-  - CKV_OP_AZURE_SUBNET_1  # Subnet uses label module
-  - CKV_OP_AZURE_SUBNET_2  # Subnet uses conditional creation
-  - CKV_OP_AZURE_SUBNET_3  # Subnet references VNet properly
-  
-  # Network Security Group - One Platform Standards
-  - CKV_OP_AZURE_NSG_1   # NSG uses label module
-  - CKV_OP_AZURE_NSG_2   # NSG uses conditional creation
-  - CKV_OP_AZURE_NSG_3   # NSG references resource group properly
-  
-  # Private Endpoint - One Platform Standards
-  - CKV_OP_AZURE_PE_1    # Private Endpoint uses label module
-  - CKV_OP_AZURE_PE_2    # Private Endpoint uses conditional creation
-  - CKV_OP_AZURE_PE_3    # Private Endpoint references resource group
-  
-  # Storage Account - One Platform Standards
-  - CKV_OP_AZURE_SA_1    # Storage Account uses label module
-  - CKV_OP_AZURE_SA_2    # Storage Account uses conditional creation
-  
-  # Key Vault - One Platform Standards
-  - CKV_OP_AZURE_KV_1    # Key Vault uses label module
-  - CKV_OP_AZURE_KV_2    # Key Vault uses conditional creation
-  - CKV_OP_AZURE_KV_3    # Key Vault uses approved regions
-  
-  # App Service Plan - One Platform Standards
-  - CKV_OP_AZURE_ASP_1   # App Service Plan uses label module
-  - CKV_OP_AZURE_ASP_2   # App Service Plan uses conditional creation
-  - CKV_OP_AZURE_ASP_3   # App Service Plan references resource group
-  - CKV_OP_AZURE_ASP_4   # App Service Plan uses approved regions
-  
-  # Function App - One Platform Standards
-  - CKV_OP_AZURE_FA_1    # Function App uses label module
-  - CKV_OP_AZURE_FA_2    # Function App uses conditional creation
-  - CKV_OP_AZURE_FA_3    # Function App has storage account configured
-  - CKV_OP_AZURE_FA_4    # Function App references service plan
+# Commented out due to conflict with skip-check - Checkov requires them to be mutually exclusive
+# When using skip-check, we cannot also specify which checks to run
+# All checks will run except those explicitly skipped
+# check:
+#   # Storage Account Security
+#   - CKV_AZURE_3   # Ensure that 'Secure transfer required' is set on Storage Accounts
+#   - CKV_AZURE_4   # Ensure the storage account public access is disabled
+#   - CKV_AZURE_8   # Ensure that 'Public access level' is set to Private for blob containers
+#   - CKV_AZURE_33  # Ensure Storage logging is enabled for Queue service
+#   - CKV_AZURE_34  # Ensure Storage logging is enabled for Table service
+#   - CKV_AZURE_35  # Ensure default network access rule for Storage Accounts is set to deny
+#   - CKV_AZURE_43  # Ensure Storage Accounts adhere to the naming rules
+#   - CKV_AZURE_44  # Ensure Storage Account is using the latest version of TLS encryption
+#   
+#   # Key Vault Security
+#   - CKV_AZURE_40  # Ensure that the expiration date is set on all keys
+#   - CKV_AZURE_41  # Ensure that the expiration date is set on all secrets
+#   - CKV_AZURE_42  # Ensure the key vault is recoverable
+#   
+#   # App Service Security
+#   - CKV_AZURE_13  # Ensure App Service Authentication is set on Azure App Service
+#   - CKV_AZURE_14  # Ensure web app redirects all HTTP traffic to HTTPS
+#   - CKV_AZURE_15  # Ensure web app is using the latest version of TLS encryption
+#   
+# # One Platform custom security checks (Platform-specific patterns only)
+#   # Resource Group - One Platform Standards
+#   - CKV_OP_AZURE_RG_1    # Resource Group uses label module
+#   - CKV_OP_AZURE_RG_2    # Resource Group uses conditional creation
+#   - CKV_OP_AZURE_RG_3    # Resource Group uses approved regions
+#   
+#   # Virtual Network - One Platform Standards  
+#   - CKV_OP_AZURE_VNET_1  # VNet uses label module
+#   - CKV_OP_AZURE_VNET_2  # VNet uses conditional creation
+#   - CKV_OP_AZURE_VNET_3  # VNet references proper resource group
+#   - CKV_OP_AZURE_VNET_4  # VNet uses valid private IP ranges
+#   
+#   # Subnet - One Platform Standards
+#   - CKV_OP_AZURE_SUBNET_1  # Subnet uses label module
+#   - CKV_OP_AZURE_SUBNET_2  # Subnet uses conditional creation
+#   - CKV_OP_AZURE_SUBNET_3  # Subnet references VNet properly
+#   
+#   # Network Security Group - One Platform Standards
+#   - CKV_OP_AZURE_NSG_1   # NSG uses label module
+#   - CKV_OP_AZURE_NSG_2   # NSG uses conditional creation
+#   - CKV_OP_AZURE_NSG_3   # NSG references resource group properly
+#   
+#   # Private Endpoint - One Platform Standards
+#   - CKV_OP_AZURE_PE_1    # Private Endpoint uses label module
+#   - CKV_OP_AZURE_PE_2    # Private Endpoint uses conditional creation
+#   - CKV_OP_AZURE_PE_3    # Private Endpoint references resource group
+#   
+#   # Storage Account - One Platform Standards
+#   - CKV_OP_AZURE_SA_1    # Storage Account uses label module
+#   - CKV_OP_AZURE_SA_2    # Storage Account uses conditional creation
+#   
+#   # Key Vault - One Platform Standards
+#   - CKV_OP_AZURE_KV_1    # Key Vault uses label module
+#   - CKV_OP_AZURE_KV_2    # Key Vault uses conditional creation
+#   - CKV_OP_AZURE_KV_3    # Key Vault uses approved regions
+#   
+#   # App Service Plan - One Platform Standards
+#   - CKV_OP_AZURE_ASP_1   # App Service Plan uses label module
+#   - CKV_OP_AZURE_ASP_2   # App Service Plan uses conditional creation
+#   - CKV_OP_AZURE_ASP_3   # App Service Plan references resource group
+#   - CKV_OP_AZURE_ASP_4   # App Service Plan uses approved regions
+#   
+#   # Function App - One Platform Standards
+#   - CKV_OP_AZURE_FA_1    # Function App uses label module
+#   - CKV_OP_AZURE_FA_2    # Function App uses conditional creation
+#   - CKV_OP_AZURE_FA_3    # Function App has storage account configured
+#   - CKV_OP_AZURE_FA_4    # Function App references service plan

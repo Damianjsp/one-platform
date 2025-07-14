@@ -49,37 +49,10 @@ jobs:
         with:
           terraform_version: "~1.9"
 
-      - name: Install Atmos
-        run: |
-          # Download latest Atmos release directly from GitHub
-          ATMOS_VERSION=$(curl -s https://api.github.com/repos/cloudposse/atmos/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-          ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
-          echo "Installing Atmos version: $ATMOS_VERSION (numeric: $ATMOS_VERSION_NUM)"
-          
-          # Debug: Check if variables are properly set
-          if [ -z "$ATMOS_VERSION" ]; then
-            echo "❌ Failed to get Atmos version from GitHub API"
-            exit 1
-          fi
-          
-          if [ -z "$ATMOS_VERSION_NUM" ]; then
-            echo "❌ Failed to extract numeric version"
-            exit 1
-          fi
-          
-          # Create temp directory and download
-          mkdir -p /tmp/atmos-install
-          cd /tmp/atmos-install
-          
-          # Construct download URL
-          DOWNLOAD_URL="https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION_NUM}_linux_amd64"
-          echo "Download URL: $DOWNLOAD_URL"
-          
-          # Download and install binary directly
-          curl -sSfL "$DOWNLOAD_URL" -o atmos
-          chmod +x atmos
-          sudo mv atmos /usr/local/bin/
-          atmos version
+      - name: Setup Atmos
+        uses: cloudposse/github-action-setup-atmos@v2
+        with:
+          install-wrapper: false
 
       - name: Configure Azure credentials
         uses: azure/login@v2
@@ -292,37 +265,10 @@ jobs:
         with:
           terraform_version: "~1.9"
 
-      - name: Install Atmos
-        run: |
-          # Download latest Atmos release directly from GitHub
-          ATMOS_VERSION=$(curl -s https://api.github.com/repos/cloudposse/atmos/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-          ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
-          echo "Installing Atmos version: $ATMOS_VERSION (numeric: $ATMOS_VERSION_NUM)"
-          
-          # Debug: Check if variables are properly set
-          if [ -z "$ATMOS_VERSION" ]; then
-            echo "❌ Failed to get Atmos version from GitHub API"
-            exit 1
-          fi
-          
-          if [ -z "$ATMOS_VERSION_NUM" ]; then
-            echo "❌ Failed to extract numeric version"
-            exit 1
-          fi
-          
-          # Create temp directory and download
-          mkdir -p /tmp/atmos-install
-          cd /tmp/atmos-install
-          
-          # Construct download URL
-          DOWNLOAD_URL="https://github.com/cloudposse/atmos/releases/download/${ATMOS_VERSION}/atmos_${ATMOS_VERSION_NUM}_linux_amd64"
-          echo "Download URL: $DOWNLOAD_URL"
-          
-          # Download and install binary directly
-          curl -sSfL "$DOWNLOAD_URL" -o atmos
-          chmod +x atmos
-          sudo mv atmos /usr/local/bin/
-          atmos version
+      - name: Setup Atmos
+        uses: cloudposse/github-action-setup-atmos@v2
+        with:
+          install-wrapper: false
 
       - name: Configure Azure credentials
         uses: azure/login@v2
