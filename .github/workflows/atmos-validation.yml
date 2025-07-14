@@ -305,18 +305,23 @@ jobs:
               # Check if this component is in our list to validate
               if echo " $COMPONENTS " | grep -q " $ordered_component "; then
                 for stack in $STACKS; do
-                  echo "📦 Validating $ordered_component in $stack"
-                  if ! ./scripts/validate-component.sh "$ordered_component" "$stack" --syntax-only;
-                  then
-                    echo "❌ Validation failed for $ordered_component in $stack"
-                    exit 1
-                  fi
-                  
-                  # Run Checkov security scan on specific component
-                  echo "🔒 Running Checkov security scan on $ordered_component"
-                  if ! ./scripts/checkov-scan.sh "$ordered_component" "$stack"; then
-                    echo "❌ Security issues found in $ordered_component - blocking merge"
-                    exit 1
+                  # Check if component exists in this stack before validating
+                  if atmos list components -s "$stack" | grep -q "^$ordered_component$"; then
+                    echo "📦 Validating $ordered_component in $stack"
+                    if ! ./scripts/validate-component.sh "$ordered_component" "$stack" --syntax-only;
+                    then
+                      echo "❌ Validation failed for $ordered_component in $stack"
+                      exit 1
+                    fi
+                    
+                    # Run Checkov security scan on specific component
+                    echo "🔒 Running Checkov security scan on $ordered_component"
+                    if ! ./scripts/checkov-scan.sh "$ordered_component" "$stack"; then
+                      echo "❌ Security issues found in $ordered_component - blocking merge"
+                      exit 1
+                    fi
+                  else
+                    echo "⏭️  Skipping $ordered_component in $stack (component not configured in this stack)"
                   fi
                 done
               fi
@@ -326,18 +331,23 @@ jobs:
             for component in $COMPONENTS; do
               if ! echo " $DEPENDENCY_ORDER " | grep -q " $component "; then
                 for stack in $STACKS; do
-                  echo "📦 Validating remaining component $component in $stack"
-                  if ! ./scripts/validate-component.sh "$component" "$stack" --syntax-only;
-                  then
-                    echo "❌ Validation failed for $component in $stack"
-                    exit 1
-                  fi
-                  
-                  # Run Checkov security scan on specific component
-                  echo "🔒 Running Checkov security scan on $component"
-                  if ! ./scripts/checkov-scan.sh "$component" "$stack"; then
-                    echo "❌ Security issues found in $component - blocking merge"
-                    exit 1
+                  # Check if component exists in this stack before validating
+                  if atmos list components -s "$stack" | grep -q "^$component$"; then
+                    echo "📦 Validating remaining component $component in $stack"
+                    if ! ./scripts/validate-component.sh "$component" "$stack" --syntax-only;
+                    then
+                      echo "❌ Validation failed for $component in $stack"
+                      exit 1
+                    fi
+                    
+                    # Run Checkov security scan on specific component
+                    echo "🔒 Running Checkov security scan on $component"
+                    if ! ./scripts/checkov-scan.sh "$component" "$stack"; then
+                      echo "❌ Security issues found in $component - blocking merge"
+                      exit 1
+                    fi
+                  else
+                    echo "⏭️  Skipping $component in $stack (component not configured in this stack)"
                   fi
                 done
               fi
