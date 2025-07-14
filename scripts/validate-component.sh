@@ -65,6 +65,9 @@ else
     exit 1
 fi
 
+# Change to atmos directory for Atmos commands (where atmos.yaml is located)
+cd atmos
+
 # Validate stack configuration
 print_status $YELLOW "📋 Validating stack configuration..."
 if atmos validate stacks; then

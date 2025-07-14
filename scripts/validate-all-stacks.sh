@@ -29,6 +29,9 @@ STACK_PATTERN=${1:-""}
 
 print_status $BLUE "🚀 Starting comprehensive Atmos stack validation"
 
+# Change to atmos directory for Atmos commands (where atmos.yaml is located)
+cd atmos
+
 # Global validation first
 print_status $CYAN "🔍 Running global stack configuration validation..."
 if atmos validate stacks; then
