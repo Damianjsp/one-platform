@@ -6,10 +6,6 @@ name: Atmos Component Validation
     branches: [main]
     paths:
       - 'atmos/**'
-  push:
-    branches: [main]
-    paths:
-      - 'atmos/**'
 
 permissions:
   contents: read           # Required to checkout code
@@ -353,12 +349,6 @@ jobs:
               fi
             done
           fi
-
-      - name: Run comprehensive validation on main branch
-        if: github.ref == 'refs/heads/main'
-        run: |
-          echo "🚀 Running comprehensive validation on main branch"
-          ./scripts/validate-all-stacks.sh
 
       - name: Upload validation logs
         if: failure()

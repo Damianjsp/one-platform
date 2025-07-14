@@ -1,10 +1,10 @@
 # One Platform
 
-[![Latest Release](https://img.shields.io/github/v/release/Damianjsp/one-platform)](https://github.com/Damianjsp/one-platform/releases)
-[![License](https://img.shields.io/github/license/Damianjsp/one-platform)](LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/oneplatform-ecosystem/infrastructure-platform)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases)
+[![License](https://img.shields.io/github/license/oneplatform-ecosystem/infrastructure-platform)](LICENSE)
 [![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.9.0-blue)](https://www.terraform.io/)
 [![Azure Provider](https://img.shields.io/badge/azurerm-4.23.0-blue)](https://registry.terraform.io/providers/hashicorp/azurerm/)
-[![Atmos](https://img.shields.io/badge/atmos-latest-green)](https://atmos.tools/)
+[![Atmos](https://img.shields.io/badge/atmos-1.182.0-green)](https://atmos.tools/)
 [![Semantic Versioning](https://img.shields.io/badge/semver-enabled-brightgreen)](https://semver.org/)
 
 One Platform is a comprehensive infrastructure-as-code solution designed to manage Azure deployments across multiple environments with consistency, reliability, and best practices using Atmos orchestration.
@@ -90,8 +90,8 @@ Resources follow the pattern: `{environment}{stage}{name}{namespace}`
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Damianjsp/one-platform.git
-   cd one-platform
+   git clone https://github.com/oneplatform-ecosystem/infrastructure-platform.git
+   cd infrastructure-platform
    ```
 
 2. **Navigate to Atmos directory**
@@ -301,7 +301,7 @@ Terraform state is managed using Azure Storage:
 
 ## 📊 Status
 
-- **Latest Release**: [![Latest Release](https://img.shields.io/github/v/release/Damianjsp/one-platform)](https://github.com/Damianjsp/one-platform/releases)
+- **Latest Release**: [![Latest Release](https://img.shields.io/github/v/release/oneplatform-ecosystem/infrastructure-platform)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases)
 - **Build Status**: All components validated ✅
 - **Coverage**: 7 Azure components available
 - **Environments**: Development environment fully deployed
@@ -316,8 +316,8 @@ Terraform state is managed using Azure Storage:
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/Damianjsp/one-platform/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Damianjsp/one-platform/discussions)
+- **Issues**: [GitHub Issues](https://github.com/oneplatform-ecosystem/infrastructure-platform/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/oneplatform-ecosystem/infrastructure-platform/discussions)
 - **Documentation**: Check the `docs/` directory and component READMEs
 
 ---
