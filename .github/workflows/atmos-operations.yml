@@ -58,7 +58,7 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-          
+
       - name: Set Terraform ARM environment variables
         run: |
           # Extract credentials from AZURE_CREDENTIALS secret and set ARM_* variables
@@ -67,18 +67,18 @@ jobs:
           CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret)
           SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
           TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
-          
+
           # Set backend configuration variables
           echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
           echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
           echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
-          
+
           # Mask the sensitive values in logs
           echo "::add-mask::$CLIENT_ID"
           echo "::add-mask::$CLIENT_SECRET"
           echo "::add-mask::$SUBSCRIPTION_ID"
           echo "::add-mask::$TENANT_ID"
-          
+
           # Set environment variables
           echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
           echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
@@ -120,11 +120,11 @@ jobs:
         run: |
           # Change to atmos directory
           cd atmos
-          
+
           if [ "${{ inputs.component }}" = "all" ]; then
             echo "🔍 Getting all components for stack ${{ inputs.stack }}..."
             ALL_COMPONENTS=$(atmos list components -s "${{ inputs.stack }}" | grep -v "^$" | sort)
-            
+
             # Filter out abstract components using hardcoded list for performance
             FILTERED_COMPONENTS=""
             for component in $ALL_COMPONENTS; do
@@ -133,15 +133,14 @@ jobs:
                 echo "⏭️  Skipping abstract component: $component"
                 continue
               fi
-              
+
               if [ -n "$FILTERED_COMPONENTS" ]; then
-                FILTERED_COMPONENTS="$FILTERED_COMPONENTS
-$component"
+                FILTERED_COMPONENTS="$FILTERED_COMPONENTS $component"
               else
                 FILTERED_COMPONENTS="$component"
               fi
             done
-            
+
             echo "components<<EOF" >> $GITHUB_OUTPUT
             echo "$FILTERED_COMPONENTS" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
@@ -160,7 +159,7 @@ $component"
               atmos list components -s "${{ inputs.stack }}" | grep "${{ inputs.component }}-" || echo "No concrete instances found"
               exit 1
             fi
-            
+
             echo "components=${{ inputs.component }}" >> $GITHUB_OUTPUT
             echo "Single component: ${{ inputs.component }}"
           fi
@@ -172,15 +171,15 @@ $component"
           echo "📋 Running Terraform plans..."
           mkdir -p /tmp/plans
           cd atmos
-          
+
           if [ "${{ steps.components.outputs.components }}" = "affected" ]; then
             echo "📋 Planning affected components in dependency order..."
             PLAN_FILE="/tmp/plans/affected.plan"
-            
+
             # Use Atmos dependency-aware planning
             timeout 900 atmos terraform plan --affected -s "${{ inputs.stack }}" \
               -no-color -input=false > "$PLAN_FILE" 2>&1 && PLAN_STATUS=$? || PLAN_STATUS=$?
-            
+
             if [ $PLAN_STATUS -eq 0 ]; then
               echo "✅ Affected components planned successfully"
             elif [ $PLAN_STATUS -eq 124 ]; then
@@ -198,11 +197,11 @@ $component"
               if [ -n "$component" ]; then
                 echo "📋 Planning component: $component (timeout: 10 minutes)"
                 PLAN_FILE="/tmp/plans/$component.plan"
-                
+
                 # Set timeout for individual component planning
                 timeout 600 atmos terraform plan "$component" -s "${{ inputs.stack }}" \
                   -no-color -input=false > "$PLAN_FILE" 2>&1 && PLAN_STATUS=$? || PLAN_STATUS=$?
-                
+
                 if [ $PLAN_STATUS -eq 0 ]; then
                   echo "✅ Plan completed for component: $component"
                 elif [ $PLAN_STATUS -eq 124 ]; then
@@ -223,45 +222,45 @@ $component"
         id: plan-summary
         run: |
           echo "🎨 Generating plan dashboard..."
-          
+
           # Create a combined dashboard for all components
           python3 - << 'EOF'
           import sys
           import os
           import glob
           from pathlib import Path
-          
+
           # Add the scripts directory to the Python path
           sys.path.insert(0, 'scripts')
-          
+
           # Import the dashboard generator module
           import parse_terraform_plan
-          
+
           # Read all plan files
           component_plans = {}
           for plan_file in glob.glob('/tmp/plans/*.plan'):
               component = Path(plan_file).stem
               with open(plan_file, 'r') as f:
                   component_plans[component] = f.read()
-          
+
           # Generate dashboard
           if component_plans:
               dashboard = parse_terraform_plan.generate_dashboard(component_plans)
-              
+
               # Save to file and output
               with open('/tmp/plan-dashboard.md', 'w') as f:
                   f.write(dashboard)
-              
+
               # Output for job summary (truncated if too long)
               if len(dashboard) > 50000:
                   summary = dashboard[:50000] + "\n\n... (truncated, see artifacts for full dashboard)"
               else:
                   summary = dashboard
-              
+
               # Write to step summary
               with open(os.environ['GITHUB_STEP_SUMMARY'], 'w') as f:
                   f.write(summary)
-              
+
               print("Dashboard generated successfully!")
           else:
               print("No plans found to process")
@@ -282,7 +281,7 @@ $component"
     environment: damian_ent_azure
     needs: plan
     if: inputs.action != 'plan'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -301,7 +300,7 @@ $component"
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-          
+
       - name: Set Terraform ARM environment variables
         run: |
           # Extract credentials from AZURE_CREDENTIALS secret and set ARM_* variables
@@ -310,18 +309,18 @@ $component"
           CLIENT_SECRET=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .clientSecret)
           SUBSCRIPTION_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .subscriptionId)
           TENANT_ID=$(echo '${{ secrets.AZURE_CREDENTIALS }}' | jq -r .tenantId)
-          
+
           # Set backend configuration variables
           echo "ATMOS_BACKEND_RESOURCE_GROUP=atmos-rsg-core" >> $GITHUB_ENV
           echo "ATMOS_BACKEND_STORAGE_ACCOUNT=statomicore" >> $GITHUB_ENV
           echo "ATMOS_BACKEND_CONTAINER=corestate" >> $GITHUB_ENV
-          
+
           # Mask the sensitive values in logs
           echo "::add-mask::$CLIENT_ID"
           echo "::add-mask::$CLIENT_SECRET"
           echo "::add-mask::$SUBSCRIPTION_ID"
           echo "::add-mask::$TENANT_ID"
-          
+
           # Set environment variables
           echo "ARM_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
           echo "ARM_CLIENT_SECRET=$CLIENT_SECRET" >> $GITHUB_ENV
@@ -344,22 +343,22 @@ $component"
           issue-title: "Manual Approval: ${{ inputs.action }} ${{ inputs.component }} in ${{ inputs.stack }}"
           issue-body: |
             ## 🚨 Manual Approval Required
-            
+
             **Action**: ${{ inputs.action }}
             **Component**: ${{ inputs.component }}
             **Stack**: ${{ inputs.stack }}
             **Triggered by**: @${{ github.actor }}
-            
+
             ### 📋 Plan Summary
             Please review the plan summary from the previous job before approving.
-            
+
             **⚠️ Warning**: This action will modify your infrastructure!
-            
+
             ### 🔍 How to Review
             1. Check the plan dashboard in the previous job's summary
             2. Review the uploaded plan artifacts
             3. Ensure the changes are expected
-            
+
             ### ✅ Approval
             Comment with `/approve` to proceed or `/deny` to cancel.
 
@@ -368,7 +367,7 @@ $component"
         run: |
           cd atmos
           echo "🚀 Running Terraform apply in ${{ inputs.stack }}..."
-          
+
           if [ "${{ inputs.component }}" = "all" ]; then
             echo "🚀 Deploying all components with dependency handling..."
             # Use atmos terraform deploy for proper dependency order
@@ -391,7 +390,7 @@ $component"
               echo "Abstract components cannot be provisioned directly. Use concrete component instances instead."
               exit 1
             fi
-            
+
             echo "🚀 Applying single component: ${{ inputs.component }}"
             if ! atmos terraform apply "${{ inputs.component }}" \
               -s "${{ inputs.stack }}" -auto-approve; then
@@ -406,13 +405,13 @@ $component"
         run: |
           cd atmos
           echo "🔥 Running Terraform destroy in ${{ inputs.stack }}..."
-          
+
           if [ "${{ inputs.component }}" = "all" ] || [ "${{ inputs.component }}" = "affected" ]; then
             echo "🔥 Destroying all components in reverse dependency order..."
             # For destroy, we need to reverse the dependency order
             # Destroy private endpoints first, then dependent services, then base infrastructure
             DESTROY_ORDER="azure-private-endpoint-keyvault azure-private-endpoint-datalake-dfs azure-private-endpoint-datalake-blob azure-private-endpoint-storage-blob azure-function-app-processor azure-function-app-api azure-app-service-plan-api azure-app-service-plan-web azure-keyvault-secure azure-keyvault-dev azure-storage-account-datalake azure-storage-account-private azure-storage-account-general azure-nsg azure-subnet azure-vnet azure-resource-group"
-            
+
             for component in $DESTROY_ORDER; do
               if echo "${{ needs.plan.outputs.components-list }}" | grep -q "$component"; then
                 echo "🔥 Destroying component: $component"
@@ -431,7 +430,7 @@ $component"
               echo "Abstract components cannot be destroyed directly. Use concrete component instances instead."
               exit 1
             fi
-            
+
             echo "🔥 Destroying single component: ${{ inputs.component }}"
             if ! atmos terraform destroy "${{ inputs.component }}" \
               -s "${{ inputs.stack }}" -auto-approve; then
