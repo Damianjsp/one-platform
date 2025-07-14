@@ -11,6 +11,12 @@ name: Atmos Component Validation
     paths:
       - 'atmos/**'
 
+permissions:
+  contents: read           # Required to checkout code
+  issues: write           # Required to create/update comments on issues  
+  pull-requests: write    # Required to create/update comments on PRs
+  actions: read           # Required to read workflow run details
+
 jobs:
   validate-components:
     name: Validate Atmos Components
