@@ -206,34 +206,34 @@ jobs:
 
           echo "Changed files: $CHANGED_FILES"
 
-          # Extract components and stacks from changed files
+          # Extract components from changed files
           COMPONENTS=""
-          STACKS=""
+          STACK_FILES_CHANGED=""
 
           for file in $CHANGED_FILES; do
             if [[ $file =~ atmos/components/terraform/modules/([^/]+)/ ]];
             then
               COMPONENT="${BASH_REMATCH[1]}"
               COMPONENTS="$COMPONENTS $COMPONENT"
-            elif [[ $file =~ atmos/stacks/.*/(.*).yaml$ ]]; then
-              STACK="${BASH_REMATCH[1]}"
-              if [[ ! $STACK =~ ^(mixins|defaults)$ ]]; then
-                STACKS="$STACKS $STACK"
-              fi
+            elif [[ $file =~ atmos/stacks/.*\.yaml$ ]]; then
+              # Stack file changed - we'll validate all stacks
+              STACK_FILES_CHANGED="true"
             fi
           done
 
           # Remove duplicates and clean up
           COMPONENTS=$(echo $COMPONENTS | tr ' ' '\n' | \
             sort -u | tr '\n' ' ' | xargs)
-          STACKS=$(echo $STACKS | tr ' ' '\n' | \
-            sort -u | tr '\n' ' ' | xargs)
 
           # Change to atmos directory for component listing
           cd atmos
 
-          # If no specific stacks detected, use provided stack
-          if [ -z "$STACKS" ]; then
+          # If stack files changed, get all actual stack names from Atmos
+          if [ "$STACK_FILES_CHANGED" = "true" ]; then
+            echo "🔍 Stack files changed, determining actual stack names..."
+            STACKS=$(atmos list stacks | tr '\n' ' ' | xargs)
+          else
+            # Default to core-eus-dev if only component files changed
             STACKS="core-eus-dev"
           fi
 
