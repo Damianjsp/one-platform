@@ -1,7 +1,7 @@
 # One Platform
 
-[![Latest Release](https://img.shields.io/github/v/release/oneplatform-ecosystem/infrastructure-platform)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases)
-[![License](https://img.shields.io/github/license/oneplatform-ecosystem/infrastructure-platform)](LICENSE)
+[![Latest Release](https://img.shields.io/badge/release-v1.2.0-blue)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases/tag/v1.2.0)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.9.0-blue)](https://www.terraform.io/)
 [![Azure Provider](https://img.shields.io/badge/azurerm-4.23.0-blue)](https://registry.terraform.io/providers/hashicorp/azurerm/)
 [![Atmos](https://img.shields.io/badge/atmos-1.182.0-green)](https://atmos.tools/)
@@ -17,15 +17,11 @@ This repository provides a centralized platform for managing infrastructure depl
 
 ⚠️ **Important**: Before deploying, you must configure your Azure credentials and update placeholder values.
 
-1. **Prerequisites**: Azure CLI, Terraform >= 1.9.0, Atmos CLI
-2. **Setup**: Follow the [SETUP.md](SETUP.md) guide for detailed configuration instructions
-3. **Deploy**: Run Atmos commands to deploy infrastructure
-
-**Essential Setup Steps:**
-- Create Azure Service Principal
-- Configure backend storage account
-- Update placeholder values in configuration files
-- Set environment variables for authentication
+**📋 Prerequisites and Setup**: Follow the [SETUP.md](SETUP.md) guide for complete installation and configuration instructions including:
+- Azure CLI, Terraform >= 1.9.0, Atmos CLI installation
+- Azure Service Principal creation
+- Backend storage account configuration
+- Environment variable setup
 
 ## ✨ Key Features
 
@@ -40,15 +36,17 @@ This repository provides a centralized platform for managing infrastructure depl
 
 ## 🧩 Available Components
 
-| Component | Description | Dependencies | Status |
-|-----------|-------------|--------------|---------|
-| `azure-resource-group` | Azure Resource Groups | None | ✅ Deployed |
-| `azure-vnet` | Azure Virtual Networks | Resource Groups | ✅ Deployed |
-| `azure-subnet` | Azure Subnets | Resource Groups, VNets | ✅ Deployed |
-| `azure-nsg` | Azure Network Security Groups | Resource Groups, Subnets | ✅ Deployed |
-| `azure-private-endpoint` | Azure Private Endpoints | Resource Groups, Subnets | ✅ Deployed |
-| `azure-storage-account` | Azure Storage Accounts (V2, Data Lake Gen2) | Resource Groups, Private Endpoints | ✅ Deployed |
-| `azure-keyvault` | Azure Key Vault (keys, secrets, certificates) | Resource Groups, Private Endpoints | ✅ Deployed |
+| Component | Description | Dependencies |
+|-----------|-------------|--------------|
+| `azure-rsg` | Azure Resource Groups | None |
+| `azure-vnet` | Azure Virtual Networks | Resource Groups |
+| `azure-subnet` | Azure Subnets | Resource Groups, VNets |
+| `azure-nsg` | Azure Network Security Groups | Resource Groups, Subnets |
+| `azure-private-endpoint` | Azure Private Endpoints | Resource Groups, Subnets |
+| `azure-storage-account` | Azure Storage Accounts (V2, Data Lake Gen2) | Resource Groups |
+| `azure-keyvault` | Azure Key Vault (keys, secrets, certificates) | Resource Groups |
+| `azure-app-service-plan` | Azure App Service Plans for hosting applications | Resource Groups |
+| `azure-function-app` | Azure Function Apps for serverless computing | Resource Groups, App Service Plans, Storage Accounts |
 
 ## 🏗️ Architecture
 
@@ -56,13 +54,15 @@ This repository provides a centralized platform for managing infrastructure depl
 ```
 atmos/
 ├── components/terraform/modules/     # Reusable Terraform modules
-│   ├── azure-resource-group/         # Resource group management
+│   ├── azure-rsg/                    # Resource group management  
 │   ├── azure-vnet/                   # Virtual network configuration
 │   ├── azure-subnet/                 # Subnet management with private endpoint support
 │   ├── azure-nsg/                    # Network security groups
 │   ├── azure-private-endpoint/       # Private endpoint connectivity
 │   ├── azure-storage-account/        # Storage accounts (V2, ADLS Gen2)
-│   └── azure-keyvault/               # Key Vault for secrets management
+│   ├── azure-keyvault/               # Key Vault for secrets management
+│   ├── azure-app-service-plan/       # App Service Plans for hosting
+│   └── azure-function-app/           # Function Apps for serverless computing
 ├── stacks/catalog/                   # Component defaults and mixins
 ├── stacks/orgs/                      # Organization defaults
 └── stacks/azure/                     # Environment-specific configurations
@@ -77,14 +77,7 @@ Resources follow the pattern: `{environment}{stage}{name}{namespace}`
 - `network` = component name
 - `lazylabs` = namespace (organization)
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.9.0
-- [Atmos CLI](https://atmos.tools/quick-start/)
-- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) with active subscription
-- [jq](https://stedolan.github.io/jq/) for JSON processing
+## 🚀 Basic Usage
 
 ### Installation
 
@@ -221,30 +214,6 @@ The platform includes comprehensive Azure Key Vault integration with two deploym
 - **Service Endpoints**: Support for vault, blob, dfs, file, table services
 - **Network Policies**: Subnet configured for private endpoint traffic
 
-## 🏗️ Current Deployment
-
-### Core Infrastructure ✅
-```
-Resource Group: lalb-services-eus
-├── Virtual Network: lalbnetworkeus (10.0.0.0/16)
-├── Subnet: lalbeusdevweb (10.0.1.0/24)
-└── Network Security Group: lalbwebeus
-```
-
-### Storage Services ✅
-```
-├── General Storage: lalbgeneraleusybp2
-├── Private Storage: lalbprivateeus + private endpoint
-└── Data Lake Storage: lalbdatalakeadlseus + blob/dfs endpoints
-```
-
-### Security Services ✅
-```
-├── Dev Key Vault: lalbsecretseus (public access)
-├── Secure Key Vault: lalbsecureeus (private access)
-└── Private Endpoint: lalbkvsecureeus
-```
-
 ## 📁 Project Structure
 
 ```
@@ -301,9 +270,9 @@ Terraform state is managed using Azure Storage:
 
 ## 📊 Status
 
-- **Latest Release**: [![Latest Release](https://img.shields.io/github/v/release/oneplatform-ecosystem/infrastructure-platform)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases)
+- **Latest Release**: [![Latest Release](https://img.shields.io/badge/release-v1.2.0-blue)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases/tag/v1.2.0)
 - **Build Status**: All components validated ✅
-- **Coverage**: 7 Azure components available
+- **Coverage**: 9 Azure components available
 - **Environments**: Development environment fully deployed
 - **Infrastructure**: Core networking, storage, and security services operational
 
