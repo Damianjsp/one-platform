@@ -232,9 +232,22 @@ jobs:
             echo "🔍 Getting all components for stack: $STACKS"
             ALL_COMPONENTS=""
             for stack in $STACKS; do
-              STACK_COMPONENTS=$(atmos list components -s "$stack" | \
-                grep -v "^$" | sort | tr '\n' ' ')
-              ALL_COMPONENTS="$ALL_COMPONENTS $STACK_COMPONENTS"
+              # Get all components for the stack
+              STACK_COMPONENTS=$(atmos list components -s "$stack" | grep -v "^$" | sort)
+              
+              # Filter out abstract components
+              CONCRETE_COMPONENTS=""
+              for component in $STACK_COMPONENTS; do
+                if [ -n "$component" ]; then
+                  COMPONENT_INFO=$(atmos describe component "$component" -s "$stack" --format=json 2>/dev/null || echo "{}")
+                  COMPONENT_TYPE=$(echo "$COMPONENT_INFO" | jq -r '.metadata.type // "concrete"')
+                  if [ "$COMPONENT_TYPE" != "abstract" ]; then
+                    CONCRETE_COMPONENTS="$CONCRETE_COMPONENTS $component"
+                  fi
+                fi
+              done
+              
+              ALL_COMPONENTS="$ALL_COMPONENTS $CONCRETE_COMPONENTS"
             done
             COMPONENTS=$(echo $ALL_COMPONENTS | tr ' ' '\n' | \
               sort -u | tr '\n' ' ' | xargs)

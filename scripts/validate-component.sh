@@ -68,6 +68,17 @@ fi
 # Change to atmos directory for Atmos commands (where atmos.yaml is located)
 cd atmos
 
+# Check if component is abstract
+print_status $YELLOW "🔍 Checking if component is abstract..."
+COMPONENT_INFO=$(atmos describe component $COMPONENT -s $STACK --format=json 2>/dev/null || echo "{}")
+COMPONENT_TYPE=$(echo "$COMPONENT_INFO" | jq -r '.metadata.type // "concrete"')
+
+if [ "$COMPONENT_TYPE" = "abstract" ]; then
+    print_status $YELLOW "⏭️  Component $COMPONENT is marked as abstract - skipping validation"
+    print_status $GREEN "✅ Abstract component validation completed (skipped)"
+    exit 0
+fi
+
 # Validate stack configuration
 print_status $YELLOW "📋 Validating stack configuration..."
 if atmos validate stacks; then

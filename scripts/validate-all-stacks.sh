@@ -105,6 +105,16 @@ echo "$STACKS" | while read -r stack; do
         
         print_status $YELLOW "    🔍 Validating $component in $stack..."
         
+        # Check if component is abstract
+        COMPONENT_INFO=$(atmos describe component "$component" -s "$stack" --format=json 2>/dev/null || echo "{}")
+        COMPONENT_TYPE=$(echo "$COMPONENT_INFO" | jq -r '.metadata.type // "concrete"')
+        
+        if [ "$COMPONENT_TYPE" = "abstract" ]; then
+            print_status $YELLOW "    ⏭️  Component $component is abstract - skipping validation"
+            echo "SKIP: $stack/$component (abstract)" >> "$RESULTS_FILE"
+            continue
+        fi
+        
         # Run terraform plan
         if atmos terraform plan "$component" -s "$stack" > "/tmp/atmos-plan-$component-$stack.log" 2>&1; then
             print_status $GREEN "    ✅ $component validation successful"
