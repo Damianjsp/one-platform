@@ -123,17 +123,44 @@ jobs:
           
           if [ "${{ inputs.component }}" = "all" ]; then
             echo "🔍 Getting all components for stack ${{ inputs.stack }}..."
-            COMPONENTS=$(atmos list components -s "${{ inputs.stack }}" | grep -v "^$" | sort)
+            ALL_COMPONENTS=$(atmos list components -s "${{ inputs.stack }}" | grep -v "^$" | sort)
+            
+            # Filter out abstract components using hardcoded list for performance
+            FILTERED_COMPONENTS=""
+            for component in $ALL_COMPONENTS; do
+              # Skip known abstract components
+              if [ "$component" = "azure-app-service-plan" ] || [ "$component" = "azure-function-app" ] || [ "$component" = "azure-keyvault" ] || [ "$component" = "azure-storage-account" ] || [ "$component" = "azure-private-endpoint" ]; then
+                echo "⏭️  Skipping abstract component: $component"
+                continue
+              fi
+              
+              if [ -n "$FILTERED_COMPONENTS" ]; then
+                FILTERED_COMPONENTS="$FILTERED_COMPONENTS
+$component"
+              else
+                FILTERED_COMPONENTS="$component"
+              fi
+            done
+            
             echo "components<<EOF" >> $GITHUB_OUTPUT
-            echo "$COMPONENTS" >> $GITHUB_OUTPUT
+            echo "$FILTERED_COMPONENTS" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
-            echo "Found components:"
-            echo "$COMPONENTS"
+            echo "Found concrete components:"
+            echo "$FILTERED_COMPONENTS"
           elif [ "${{ inputs.component }}" = "affected" ]; then
             echo "🔍 Using dependency-aware planning for affected components..."
             echo "components=affected" >> $GITHUB_OUTPUT
             echo "Will use atmos terraform plan --affected for dependency-aware planning"
           else
+            # For single component, check if it's abstract
+            if [ "${{ inputs.component }}" = "azure-app-service-plan" ] || [ "${{ inputs.component }}" = "azure-function-app" ] || [ "${{ inputs.component }}" = "azure-keyvault" ] || [ "${{ inputs.component }}" = "azure-storage-account" ] || [ "${{ inputs.component }}" = "azure-private-endpoint" ]; then
+              echo "❌ Cannot plan abstract component: ${{ inputs.component }}"
+              echo "Abstract components cannot be provisioned directly. Use concrete component instances instead."
+              echo "Available concrete instances in stack ${{ inputs.stack }}:"
+              atmos list components -s "${{ inputs.stack }}" | grep "${{ inputs.component }}-" || echo "No concrete instances found"
+              exit 1
+            fi
+            
             echo "components=${{ inputs.component }}" >> $GITHUB_OUTPUT
             echo "Single component: ${{ inputs.component }}"
           fi
@@ -358,6 +385,13 @@ jobs:
             fi
             echo "✅ Deploy completed for affected components in stack: ${{ inputs.stack }}"
           else
+            # Check if component is abstract
+            if [ "${{ inputs.component }}" = "azure-app-service-plan" ] || [ "${{ inputs.component }}" = "azure-function-app" ] || [ "${{ inputs.component }}" = "azure-keyvault" ] || [ "${{ inputs.component }}" = "azure-storage-account" ] || [ "${{ inputs.component }}" = "azure-private-endpoint" ]; then
+              echo "❌ Cannot apply abstract component: ${{ inputs.component }}"
+              echo "Abstract components cannot be provisioned directly. Use concrete component instances instead."
+              exit 1
+            fi
+            
             echo "🚀 Applying single component: ${{ inputs.component }}"
             if ! atmos terraform apply "${{ inputs.component }}" \
               -s "${{ inputs.stack }}" -auto-approve; then
@@ -377,7 +411,7 @@ jobs:
             echo "🔥 Destroying all components in reverse dependency order..."
             # For destroy, we need to reverse the dependency order
             # Destroy private endpoints first, then dependent services, then base infrastructure
-            DESTROY_ORDER="azure-private-endpoint-keyvault azure-private-endpoint-datalake-dfs azure-private-endpoint-datalake-blob azure-private-endpoint-storage-blob azure-keyvault-secure azure-keyvault-dev azure-storage-account-datalake azure-storage-account-private azure-storage-account-general azure-nsg azure-subnet azure-vnet azure-resource-group"
+            DESTROY_ORDER="azure-private-endpoint-keyvault azure-private-endpoint-datalake-dfs azure-private-endpoint-datalake-blob azure-private-endpoint-storage-blob azure-function-app-processor azure-function-app-api azure-app-service-plan-api azure-app-service-plan-web azure-keyvault-secure azure-keyvault-dev azure-storage-account-datalake azure-storage-account-private azure-storage-account-general azure-nsg azure-subnet azure-vnet azure-resource-group"
             
             for component in $DESTROY_ORDER; do
               if echo "${{ needs.plan.outputs.components-list }}" | grep -q "$component"; then
@@ -391,6 +425,13 @@ jobs:
               fi
             done
           else
+            # Check if component is abstract
+            if [ "${{ inputs.component }}" = "azure-app-service-plan" ] || [ "${{ inputs.component }}" = "azure-function-app" ] || [ "${{ inputs.component }}" = "azure-keyvault" ] || [ "${{ inputs.component }}" = "azure-storage-account" ] || [ "${{ inputs.component }}" = "azure-private-endpoint" ]; then
+              echo "❌ Cannot destroy abstract component: ${{ inputs.component }}"
+              echo "Abstract components cannot be destroyed directly. Use concrete component instances instead."
+              exit 1
+            fi
+            
             echo "🔥 Destroying single component: ${{ inputs.component }}"
             if ! atmos terraform destroy "${{ inputs.component }}" \
               -s "${{ inputs.stack }}" -auto-approve; then
