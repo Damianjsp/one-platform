@@ -135,8 +135,7 @@ jobs:
               fi
 
               if [ -n "$FILTERED_COMPONENTS" ]; then
-                FILTERED_COMPONENTS="$FILTERED_COMPONENTS
-$component"
+                FILTERED_COMPONENTS="$FILTERED_COMPONENTS"$'\n'"$component"
               else
                 FILTERED_COMPONENTS="$component"
               fi
