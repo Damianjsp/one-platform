@@ -1,7 +1,7 @@
 # One Platform
 
-[![Latest Release](https://img.shields.io/badge/release-v1.2.0-blue)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases/tag/v1.2.0)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/oneplatform-ecosystem/infrastructure-platform)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases)
+[![License](https://img.shields.io/github/license/oneplatform-ecosystem/infrastructure-platform)](LICENSE)
 [![Terraform](https://img.shields.io/badge/terraform-%3E%3D1.9.0-blue)](https://www.terraform.io/)
 [![Azure Provider](https://img.shields.io/badge/azurerm-4.23.0-blue)](https://registry.terraform.io/providers/hashicorp/azurerm/)
 [![Atmos](https://img.shields.io/badge/atmos-1.182.0-green)](https://atmos.tools/)
@@ -270,7 +270,7 @@ Terraform state is managed using Azure Storage:
 
 ## 📊 Status
 
-- **Latest Release**: [![Latest Release](https://img.shields.io/badge/release-v1.2.0-blue)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases/tag/v1.2.0)
+- **Latest Release**: [![Latest Release](https://img.shields.io/github/v/release/oneplatform-ecosystem/infrastructure-platform)](https://github.com/oneplatform-ecosystem/infrastructure-platform/releases)
 - **Build Status**: All components validated ✅
 - **Coverage**: 9 Azure components available
 - **Environments**: Development environment fully deployed
