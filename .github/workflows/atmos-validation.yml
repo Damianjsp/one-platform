@@ -45,10 +45,17 @@ jobs:
 
       - name: Install Atmos
         run: |
-          # Download latest Atmos release directly from GitHub
-          ATMOS_VERSION=$(curl -s https://api.github.com/repos/cloudposse/atmos/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          # Use GitHub CLI to get latest release (more reliable than curl/grep)
+          ATMOS_VERSION=$(gh release view --repo cloudposse/atmos --json tagName --jq '.tagName')
           ATMOS_VERSION_NUM=${ATMOS_VERSION#v}
           echo "Installing Atmos version: $ATMOS_VERSION (numeric: $ATMOS_VERSION_NUM)"
+          
+          # Fallback to specific version if GitHub API fails
+          if [ -z "$ATMOS_VERSION" ] || [ -z "$ATMOS_VERSION_NUM" ]; then
+            echo "GitHub API failed, using fallback version"
+            ATMOS_VERSION="v1.105.0"
+            ATMOS_VERSION_NUM="1.105.0"
+          fi
           
           # Create temp directory and download
           mkdir -p /tmp/atmos-install

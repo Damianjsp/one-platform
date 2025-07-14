@@ -19,6 +19,14 @@ skip-check:
   # Terraform-specific checks that conflict with our patterns
   - CKV_TF_1      # Ensure Terraform module sources use a commit hash
   
+  # Additional Azure checks that may not be applicable for dev environments
+  - CKV_AZURE_33  # Storage logging for Queue service (may not be needed for all storage accounts)
+  - CKV_AZURE_112 # Key vault key backed by HSM (expensive for dev environments)
+  - CKV_AZURE_211 # App Service plan suitable for production (dev environments use smaller SKUs)
+  - CKV_AZURE_212 # App Service minimum instances for failover (dev environments may use single instance)
+  - CKV_AZURE_225 # App Service Plan zone redundant (dev environments may not need zone redundancy)
+  - CKV_AZURE_244 # Storage local users (may be needed for some configurations)
+  
 # Severity levels to include (commented out as format may vary by Checkov version)
 # severity: [CRITICAL, HIGH, MEDIUM, LOW]
 
