@@ -35,9 +35,23 @@ print_status $BLUE "🔍 Validating component: $COMPONENT in stack: $STACK"
 # Change to the project root directory (assuming script is in scripts/)
 cd "$(dirname "$0")/.."
 
-# Check Terraform formatting for the specific component
-print_status $YELLOW "🎨 Checking Terraform formatting for component: $COMPONENT..."
-COMPONENT_DIR="atmos/components/terraform/modules/$COMPONENT"
+# Get the actual module name for this component
+print_status $YELLOW "🔍 Resolving module name for component: $COMPONENT..."
+cd atmos
+COMPONENT_INFO=$(atmos describe component $COMPONENT -s $STACK --format=json 2>/dev/null || echo "{}")
+MODULE_NAME=$(echo "$COMPONENT_INFO" | jq -r '.metadata.component // .component // empty')
+
+if [ -z "$MODULE_NAME" ]; then
+    print_status $RED "❌ Could not determine module name for component: $COMPONENT"
+    exit 1
+fi
+
+print_status $BLUE "📋 Component $COMPONENT uses module: $MODULE_NAME"
+cd ..
+
+# Check Terraform formatting for the specific module
+print_status $YELLOW "🎨 Checking Terraform formatting for module: $MODULE_NAME..."
+COMPONENT_DIR="atmos/components/terraform/modules/$MODULE_NAME"
 if [ -d "$COMPONENT_DIR" ]; then
     cd "$COMPONENT_DIR"
     if terraform fmt -check=true -diff=true; then
@@ -49,12 +63,12 @@ if [ -d "$COMPONENT_DIR" ]; then
     fi
     cd - > /dev/null
 else
-    print_status $RED "❌ Component directory not found: $COMPONENT_DIR"
+    print_status $RED "❌ Module directory not found: $COMPONENT_DIR"
     exit 1
 fi
 
-# Validate Terraform syntax for the component
-print_status $YELLOW "✅ Validating Terraform syntax for component: $COMPONENT..."
+# Validate Terraform syntax for the module
+print_status $YELLOW "✅ Validating Terraform syntax for module: $MODULE_NAME..."
 cd "$COMPONENT_DIR"
 terraform init -backend=false > /dev/null 2>&1
 if terraform validate; then
