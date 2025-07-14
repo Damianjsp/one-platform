@@ -52,7 +52,7 @@ jobs:
       - name: Setup Atmos
         uses: cloudposse/github-action-setup-atmos@v2
         with:
-          install-wrapper: true
+          install-wrapper: false
 
       - name: Configure Azure credentials
         uses: azure/login@v2
@@ -268,7 +268,7 @@ jobs:
       - name: Setup Atmos
         uses: cloudposse/github-action-setup-atmos@v2
         with:
-          install-wrapper: true
+          install-wrapper: false
 
       - name: Configure Azure credentials
         uses: azure/login@v2
