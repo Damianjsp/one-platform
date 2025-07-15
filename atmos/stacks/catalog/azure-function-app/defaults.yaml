@@ -36,6 +36,10 @@ components:
         app_settings: {}
         connection_strings: {}
         
+        # Managed Identity - Always enabled system-assigned identity (hardcoded in module)
+        identity:
+          type: "SystemAssigned"
+        
         # Label Configuration (no delimiters for Azure naming compatibility)
         label_order:
           - namespace

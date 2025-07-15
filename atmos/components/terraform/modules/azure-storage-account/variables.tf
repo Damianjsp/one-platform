@@ -300,6 +300,7 @@ variable "private_endpoint_dns_zone_group_dfs" {
   default = null
 }
 
+
 # Label module variables
 variable "namespace" {
   description = "ID element. Usually an abbreviation of your organization name, e.g. 'eg' or 'cp', to help ensure generated IDs are globally unique"

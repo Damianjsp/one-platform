@@ -71,6 +71,7 @@ resource "azurerm_key_vault" "this" {
     }
   }
 
+
   tags = module.label.tags
 
   lifecycle {

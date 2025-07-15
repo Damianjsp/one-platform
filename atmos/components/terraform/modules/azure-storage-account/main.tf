@@ -74,6 +74,11 @@ resource "azurerm_storage_account" "this" {
   # Data Lake Gen2 support
   is_hns_enabled = var.is_hns_enabled
 
+  # Managed Identity - Always enable system-assigned identity
+  identity {
+    type = "SystemAssigned"
+  }
+
   # Network rules
   dynamic "network_rules" {
     for_each = var.network_rules != null ? [var.network_rules] : []

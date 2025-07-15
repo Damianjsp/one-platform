@@ -178,3 +178,19 @@ output "context" {
   description = "Exported context for use by other modules"
   value       = module.label.context
 }
+
+# Managed Identity Outputs
+output "identity" {
+  description = "The managed identity block of the storage account"
+  value = var.enabled ? {
+    type          = azurerm_storage_account.this[0].identity[0].type
+    principal_id  = azurerm_storage_account.this[0].identity[0].principal_id
+    tenant_id     = azurerm_storage_account.this[0].identity[0].tenant_id
+    identity_ids  = azurerm_storage_account.this[0].identity[0].identity_ids
+  } : null
+}
+
+output "principal_id" {
+  description = "The Principal ID of the system-assigned managed identity"
+  value       = var.enabled ? azurerm_storage_account.this[0].identity[0].principal_id : null
+}

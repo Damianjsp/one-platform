@@ -40,3 +40,4 @@ components:
         private_endpoint_services:
           - "blob"
         private_endpoint_manual_connection: false
+        

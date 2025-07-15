@@ -40,3 +40,4 @@ components:
 
         # Diagnostic settings - optional, configure per environment
         diagnostic_settings: null
+        
