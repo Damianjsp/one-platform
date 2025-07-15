@@ -1,0 +1,8 @@
+components:
+  terraform:
+    azure-user-managed-identity:
+      vars:
+        # Staging environment specific configuration
+        tags:
+          Purpose: "Staging"
+          CostCenter: "Engineering"

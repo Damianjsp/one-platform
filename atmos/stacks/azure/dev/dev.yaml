@@ -18,6 +18,8 @@ import:
   - catalog/azure-app-service-plan/mixins/dev
   - catalog/azure-function-app/defaults
   - catalog/azure-function-app/mixins/dev
+  - catalog/azure-user-managed-identity/defaults
+  - catalog/azure-user-managed-identity/mixins/dev
 
 vars:
   environment: "eus"
@@ -491,6 +493,23 @@ components:
         app_settings:
           PYTHON_VERSION: "3.11"
           ENABLE_ORYX_BUILD: "true"
+
+    # =============================================================================
+    # AZURE USER MANAGED IDENTITY EXAMPLES
+    # =============================================================================
+
+    # Example 1: User Managed Identity for Function Apps
+    azure-user-managed-identity-functions:
+      metadata:
+        component: azure-user-managed-identity
+      settings:
+        depends_on:
+          1:
+            component: "azure-resource-group"
+      vars:
+        name: "functions"
+        location: "eastus"
+        resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
 
     # Example 2: Data Lake Gen2 Storage Account
     # azure-storage-account-datalake:

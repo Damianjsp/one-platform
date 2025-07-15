@@ -1,0 +1,8 @@
+components:
+  terraform:
+    azure-user-managed-identity:
+      vars:
+        # Development environment specific configuration
+        tags:
+          Purpose: "Development"
+          CostCenter: "Engineering"

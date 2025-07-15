@@ -1,0 +1,9 @@
+components:
+  terraform:
+    azure-user-managed-identity:
+      vars:
+        # Production environment specific configuration
+        tags:
+          Purpose: "Production"
+          CostCenter: "Operations"
+          Criticality: "High"

@@ -130,3 +130,10 @@ hard-fail-on: [CRITICAL, HIGH]
 #   - CKV_OP_AZURE_FA_2    # Function App uses conditional creation
 #   - CKV_OP_AZURE_FA_3    # Function App has storage account configured
 #   - CKV_OP_AZURE_FA_4    # Function App references service plan
+#   
+#   # User Managed Identity - One Platform Standards
+#   - CKV_OP_AZURE_UMI_1   # User Managed Identity uses label module
+#   - CKV_OP_AZURE_UMI_2   # User Managed Identity uses conditional creation
+#   - CKV_OP_AZURE_UMI_3   # User Managed Identity references resource group
+#   - CKV_OP_AZURE_UMI_4   # User Managed Identity uses approved regions
+#   - CKV_OP_AZURE_UMI_5   # User Managed Identity follows naming conventions

@@ -1,0 +1,13 @@
+components:
+  terraform:
+    azure-user-managed-identity:
+      metadata:
+        component: azure-user-managed-identity
+      vars:
+        enabled: true
+        # Standard label order for user managed identities
+        label_order:
+          - environment
+          - stage
+          - name
+          - namespace
