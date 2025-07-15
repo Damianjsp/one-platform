@@ -1,2 +1,43 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+# Terraform and Infrastructure files
+*.tf text eol=lf
+*.tfvars text eol=lf
+*.hcl text eol=lf
+
+# YAML files (Atmos configs, GitHub Actions)
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Python files
+*.py text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+
+# JSON files
+*.json text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Git configuration
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Archives (treat as binary)
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+
+# Images (treat as binary)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg text eol=lf
+
+# Prevent merge conflicts in generated files
+package-lock.json binary
+yarn.lock binary
