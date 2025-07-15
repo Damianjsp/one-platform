@@ -1,0 +1,11 @@
+components:
+  terraform:
+    azure-role-assignments:
+      vars:
+        # Development environment specific configuration
+        tags:
+          Purpose: "Development"
+          CostCenter: "Engineering"
+          Environment: "Development"
+        # Dev might need more permissive settings for testing
+        skip_service_principal_aad_check: true

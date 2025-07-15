@@ -1,0 +1,11 @@
+components:
+  terraform:
+    azure-role-assignments:
+      vars:
+        # Staging environment specific configuration
+        tags:
+          Purpose: "Staging"
+          CostCenter: "Engineering"
+          Environment: "Staging"
+        # Staging should mirror production settings
+        skip_service_principal_aad_check: false

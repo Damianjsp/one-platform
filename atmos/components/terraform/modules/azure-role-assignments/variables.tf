@@ -1,0 +1,181 @@
+variable "enabled" {
+  description = "Set to false to prevent the module from creating any resources"
+  type        = bool
+  default     = true
+}
+
+variable "role_assignments" {
+  description = "Map of role assignments to create"
+  type = map(object({
+    principal_id         = string
+    principal_type       = optional(string, "user_assigned")
+    role_definition_name = string
+    scope                = string
+    description          = optional(string, "")
+  }))
+  default = {}
+}
+
+variable "assignment_matrix" {
+  description = "Matrix-style bulk assignment configuration for complex scenarios"
+  type = object({
+    principals = map(string)       # name -> principal_id mapping
+    scopes     = map(string)       # name -> resource_id mapping  
+    assignments = map(object({     # assignment configurations
+      principal_key = string       # key from principals map
+      scope_key     = string       # key from scopes map
+      roles         = list(string) # list of role names
+    }))
+  })
+  default = null
+}
+
+variable "approved_roles" {
+  description = "List of approved Azure built-in role names for validation"
+  type        = list(string)
+  default = [
+    # Storage roles
+    "Storage Blob Data Owner",
+    "Storage Blob Data Contributor",
+    "Storage Blob Data Reader",
+    "Storage Queue Data Contributor",
+    "Storage Queue Data Reader",
+    "Storage Queue Data Message Processor",
+    "Storage Queue Data Message Sender",
+    "Storage File Data SMB Share Contributor",
+    "Storage File Data SMB Share Reader",
+    "Storage Table Data Contributor",
+    "Storage Table Data Reader",
+
+    # Key Vault roles
+    "Key Vault Administrator",
+    "Key Vault Certificates Officer",
+    "Key Vault Crypto Officer",
+    "Key Vault Crypto Service Encryption User",
+    "Key Vault Crypto User",
+    "Key Vault Reader",
+    "Key Vault Secrets Officer",
+    "Key Vault Secrets User",
+
+    # Azure Database roles
+    "DocumentDB Account Contributor",
+    "SQL DB Contributor",
+    "SQL Managed Instance Contributor",
+    "SQL Server Contributor",
+
+    # Application roles
+    "Application Insights Component Contributor",
+    "Application Insights Snapshot Debugger",
+    "App Configuration Data Owner",
+    "App Configuration Data Reader",
+
+    # General roles
+    "Reader",
+    "Contributor",
+    "Owner",
+    "User Access Administrator",
+    "Managed Identity Operator",
+    "Managed Identity Contributor",
+
+    # Monitoring and Logging
+    "Log Analytics Contributor",
+    "Log Analytics Reader",
+    "Monitoring Contributor",
+    "Monitoring Reader",
+
+    # Service Bus roles
+    "Azure Service Bus Data Owner",
+    "Azure Service Bus Data Receiver",
+    "Azure Service Bus Data Sender",
+
+    # Event Hub roles
+    "Azure Event Hubs Data Owner",
+    "Azure Event Hubs Data Receiver",
+    "Azure Event Hubs Data Sender"
+  ]
+}
+
+variable "skip_service_principal_aad_check" {
+  description = "Skip the Azure Active Directory check for the service principal"
+  type        = bool
+  default     = false
+}
+
+# Label module variables
+variable "namespace" {
+  description = "ID element. Usually an abbreviation of your organization name, e.g. 'eg' or 'cp', to help ensure generated IDs are globally unique"
+  type        = string
+  default     = null
+}
+
+variable "tenant" {
+  description = "ID element _(Rarely used, not included by default)_. A customer identifier, indicating who this instance of a resource is for"
+  type        = string
+  default     = null
+}
+
+variable "environment" {
+  description = "ID element. Usually used for region e.g. 'uw2', 'us-west-2', OR role 'prod', 'staging', 'dev', 'UAT'"
+  type        = string
+  default     = null
+}
+
+variable "stage" {
+  description = "ID element. Usually used to indicate role, e.g. 'prod', 'staging', 'source', 'build', 'test', 'deploy', 'release'"
+  type        = string
+  default     = null
+}
+
+variable "name" {
+  description = "ID element. Usually the component or solution name, e.g. 'app' or 'jenkins'"
+  type        = string
+  default     = null
+}
+
+variable "attributes" {
+  description = "ID element. Additional attributes (e.g. `workers` or `cluster`) to add to `id` in the order they appear in the list"
+  type        = list(string)
+  default     = []
+}
+
+variable "delimiter" {
+  description = "Delimiter to be used between ID elements"
+  type        = string
+  default     = "-"
+}
+
+variable "tags" {
+  description = "Additional tags (e.g. `{'BusinessUnit': 'XYZ'}`)"
+  type        = map(string)
+  default     = {}
+}
+
+variable "regex_replace_chars" {
+  description = "Terraform regular expression (regex) string. Characters matching the regex will be removed from the ID elements"
+  type        = string
+  default     = null
+}
+
+variable "label_order" {
+  description = "The order in which the labels (ID elements) appear in the id"
+  type        = list(string)
+  default     = null
+}
+
+variable "label_key_case" {
+  description = "Controls the letter case of the tags keys (label names) for tags generated by this module"
+  type        = string
+  default     = null
+}
+
+variable "label_value_case" {
+  description = "Controls the letter case of the tags values for tags generated by this module"
+  type        = string
+  default     = null
+}
+
+variable "id_length_limit" {
+  description = "Limit `id` to this many characters (minimum 6)"
+  type        = number
+  default     = null
+}

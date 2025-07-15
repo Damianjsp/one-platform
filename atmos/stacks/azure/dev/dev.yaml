@@ -20,6 +20,8 @@ import:
   - catalog/azure-function-app/mixins/dev
   - catalog/azure-user-managed-identity/defaults
   - catalog/azure-user-managed-identity/mixins/dev
+  - catalog/azure-role-assignments/defaults
+  - catalog/azure-role-assignments/mixins/dev
 
 vars:
   environment: "eus"
@@ -510,6 +512,82 @@ components:
         name: "functions"
         location: "eastus"
         resource_group_name: !terraform.output azure-resource-group ".resource_group_name"
+
+    # =============================================================================
+    # AZURE ROLE ASSIGNMENTS EXAMPLES
+    # =============================================================================
+
+    # Example 1: Function Apps accessing Storage and Key Vault
+    azure-role-assignments-function-apps:
+      metadata:
+        component: azure-role-assignments
+      settings:
+        depends_on:
+          1:
+            component: "azure-function-app-api"
+          2:
+            component: "azure-function-app-processor"  
+          3:
+            component: "azure-storage-account-general"
+          4:
+            component: "azure-keyvault-dev"
+      vars:
+        name: "functions"
+        attributes: ["access"]
+        role_assignments:
+          api-function-storage-access:
+            principal_id: !terraform.output azure-function-app-api ".function_app_identity.0.principal_id"
+            principal_type: "system_assigned"
+            role_definition_name: "Storage Blob Data Reader"
+            scope: !terraform.output azure-storage-account-general ".storage_account_id"
+            description: "API Function App read access to general storage"
+          api-function-keyvault-access:
+            principal_id: !terraform.output azure-function-app-api ".function_app_identity.0.principal_id"
+            principal_type: "system_assigned"
+            role_definition_name: "Key Vault Secrets User"
+            scope: !terraform.output azure-keyvault-dev ".key_vault_id"
+            description: "API Function App access to development secrets"
+          processor-function-storage-write:
+            principal_id: !terraform.output azure-function-app-processor ".function_app_identity.0.principal_id"
+            principal_type: "system_assigned"
+            role_definition_name: "Storage Blob Data Contributor"
+            scope: !terraform.output azure-storage-account-general ".storage_account_id"
+            description: "Processor Function App write access to general storage"
+
+    # Example 2: User Managed Identity accessing multiple services
+    azure-role-assignments-umi-services:
+      metadata:
+        component: azure-role-assignments
+      settings:
+        depends_on:
+          1:
+            component: "azure-user-managed-identity-functions"
+          2:
+            component: "azure-storage-account-private"
+          3:
+            component: "azure-keyvault-secure"
+      vars:
+        name: "umi"
+        attributes: ["services"]
+        role_assignments:
+          umi-functions-storage-blob-read:
+            principal_id: !terraform.output azure-user-managed-identity-functions ".principal_id"
+            principal_type: "user_assigned"
+            role_definition_name: "Storage Blob Data Reader"
+            scope: !terraform.output azure-storage-account-private ".storage_account_id"
+            description: "UMI read access to private storage blobs"
+          umi-functions-storage-queue-contrib:
+            principal_id: !terraform.output azure-user-managed-identity-functions ".principal_id"
+            principal_type: "user_assigned"
+            role_definition_name: "Storage Queue Data Contributor"
+            scope: !terraform.output azure-storage-account-private ".storage_account_id"
+            description: "UMI full access to private storage queues"
+          umi-functions-keyvault-secrets:
+            principal_id: !terraform.output azure-user-managed-identity-functions ".principal_id"
+            principal_type: "user_assigned"
+            role_definition_name: "Key Vault Secrets User"
+            scope: !terraform.output azure-keyvault-secure ".key_vault_id"
+            description: "UMI access to secure Key Vault secrets"
 
     # Example 2: Data Lake Gen2 Storage Account
     # azure-storage-account-datalake:

@@ -137,3 +137,11 @@ hard-fail-on: [CRITICAL, HIGH]
 #   - CKV_OP_AZURE_UMI_3   # User Managed Identity references resource group
 #   - CKV_OP_AZURE_UMI_4   # User Managed Identity uses approved regions
 #   - CKV_OP_AZURE_UMI_5   # User Managed Identity follows naming conventions
+#   
+#   # Role Assignments - One Platform Standards
+#   - CKV_OP_AZURE_RA_1    # Role Assignment uses label module
+#   - CKV_OP_AZURE_RA_2    # Role Assignment uses approved built-in roles
+#   - CKV_OP_AZURE_RA_3    # Role Assignment has valid principal ID
+#   - CKV_OP_AZURE_RA_4    # Role Assignment has appropriate scope
+#   - CKV_OP_AZURE_RA_5    # Role Assignment has description for audit
+#   - CKV_OP_AZURE_RA_6    # Role Assignment follows least privilege principle

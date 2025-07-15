@@ -1,0 +1,12 @@
+components:
+  terraform:
+    azure-role-assignments:
+      vars:
+        # Production environment specific configuration
+        tags:
+          Purpose: "Production"
+          CostCenter: "Operations"
+          Criticality: "High"
+          Environment: "Production"
+        # Production should have strict validation
+        skip_service_principal_aad_check: false

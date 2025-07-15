@@ -1,0 +1,15 @@
+components:
+  terraform:
+    azure-role-assignments:
+      metadata:
+        component: azure-role-assignments
+      vars:
+        enabled: true
+        # Standard label order for role assignments
+        label_order:
+          - environment
+          - stage
+          - name
+          - namespace
+        # Security defaults
+        skip_service_principal_aad_check: false
